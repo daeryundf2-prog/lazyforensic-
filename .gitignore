@@ -1,0 +1,20 @@
+# Node / Python / OS artifacts
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+
+# OS specific
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Output test files
+*.tmp
+*.log
+scratch/
