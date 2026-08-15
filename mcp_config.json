@@ -1,0 +1,11 @@
+{
+	"mcpServers": {
+		"korean_law": {
+			"command": "node",
+			"args": [
+				"./korean-law-mcp/build/index.js"
+			],
+			"cwd": "."
+		}
+	}
+}
