@@ -1,14 +1,20 @@
 # LazyForensic
 
 > **Digital Forensic & Incident Response (DFIR) Specialist Suite for Google Antigravity**  
-> 법무법인(유한) 대륜 디지털포렌식센터 맞춤형 디지털 포렌식·법률 AI·감정보고서·문서 교정·동영상 증거물 가공·프리미엄 UI/UX 엔지니어링 독립 플러그인
+> 법무법인(유한) 대륜 디지털포렌식센터 맞춤형 디지털 포렌식·법률 AI·감정보고서·문서 교정·동영상 증거물 가공·AI 슬롭 제거·프리미엄 UI/UX 엔지니어링 독립 플러그인
 
 ---
 
 ## 🌟 개요 (Overview)
 
 `LazyForensic`은 Google Antigravity 에이전트 환경에서 동작하는 전문 디지털 포렌식 & 리걸테크 확장 플러그인입니다.  
-개발·코딩용 플러그인(`LazyAntigravity`)과 완전히 분리되어 독립적으로 동작하며, **Meng To(DesignCode) 127개 프리미엄 UI/UX 스킬**, **74+ 브랜드 DESIGN.md 디자인 시스템**, **Korean Law MCP(법제처 법령/판례 실시간 조회·인용검증)**, **Korean Writing Reviewer(법원/로펌 공문서 전문 한국어 감수·교정)**, 법원/수사기관 제출용 포렌식 감정보고서 작성, 시계열 타임라인 자동 생성, 파일 타임스탬프 위변조 감정, CCTV/블랙박스/동영상 증거물 멀티모달 분석 및 정밀 구간 편집, AntV 전문 인포그래픽 시각화, 모바일/카카오톡 대화 분석, DLP 정보유출 교차 분석을 자동화합니다.
+개발·코딩용 플러그인(`LazyAntigravity`)과 완전히 분리되어 독립적으로 동작하며, **SlopSlap(UI AI-Slop 기계적 제거 파이프라인)**, **Meng To(DesignCode) 127개 프리미엄 UI/UX 스킬**, **74+ 브랜드 DESIGN.md 디자인 시스템**, **Korean Law MCP(법제처 법령/판례 실시간 조회·인용검증)**, **Korean Writing Reviewer(법원/로펌 공문서 전문 한국어 감수·교정)**, 법원/수사기관 제출용 포렌식 감정보고서 작성, 시계열 타임라인 자동 생성, 파일 타임스탬프 위변조 감정, CCTV/블랙박스/동영상 증거물 멀티모달 분석 및 정밀 구간 편집, AntV 전문 인포그래픽 시각화, 모바일/카카오톡 대화 분석, DLP 정보유출 교차 분석을 자동화합니다.
+
+---
+
+## 🖐️ UI 슬롭 기계적 제거 엔진 (SlopSlap by VibeDesignLab)
+
+* **`slopslap`**: AI가 생성한 촌스러운 UI 클리셰(오버라인·eyebrow 뱃지, 플로팅 글로우 오브/blob, 그라디언트 텍스트, 이모지 남발, 무지개 팔레트, 불필요한 중첩 컨테이너)를 5단계 병렬 파이프라인(A~E 영역)으로 실측 감지하고 기계적으로 완벽 제거.
 
 ---
 
@@ -29,6 +35,7 @@
 
 | 스킬명 | 설명 | 주요 실행 스크립트 / 레퍼런스 |
 | :--- | :--- | :--- |
+| **`slopslap`** | 5대 영역(대표슬롭·레이아웃·간격·타이포·색) UI AI-Slop 병렬 정적 점검 및 기계적 제거 | `scripts/scan-slop-signals.mjs`, `scripts/fetch-references.mjs` |
 | **`frontend-ui-ux`** | Meng To 127개 UI/UX 스킬 기반 인터랙티브 타임라인 뷰어, 다크 글래스 대시보드, 3D WebGL 시각화 | `mengto-skills/*` |
 | **`design-system`** | 74개 글로벌 브랜드 DESIGN.md 기반 타임라인 뷰어, 포렌식 대시보드, 웹 리포트 프리미엄 UI/UX 스타일링 | `design-systems/*/DESIGN.md` |
 | **`korean-writing-reviewer`** | 공문서, 법률 의견서, 기술 감정서, 보고서의 전문 한국어 교정, 번역투/상투적 AI 문체 제거, 원문 수치·해시 보존 검수 | `references/scoring-report.md`, `references/editor-protection.md` |
@@ -59,6 +66,7 @@ lazyforensic/
 │   ├── forensic_report_template.md  # 포렌식 감정의견서 템플릿
 │   └── contract_template.md         # 디지털포렌식 위임계약서 서식
 └── skills/
+    ├── slopslap/               # [스킬] UI AI-Slop 기계적 제거 파이프라인 (VibeDesignLab)
     ├── frontend-ui-ux/         # [스킬] Meng To UI/UX 인터랙티브 웹 엔지니어링
     ├── design-system/          # [스킬] 74개 브랜드 프리미엄 UI/UX 스타일링
     ├── korean-writing-reviewer/# [스킬] 공문서/감정서 전문 한국어 문장 교정·검토
@@ -77,42 +85,47 @@ lazyforensic/
 
 ## 🚀 빠른 시작 (Quick Start)
 
-### 1. 인터랙티브 포렌식 타임라인 웹 뷰어 생성
+### 1. UI 화면 AI-Slop 기계적 제거
+```markdown
+이 타임라인 대시보드 웹페이지에서 AI 슬롭(오버라인 뱃지, 불필요한 글로우, 중첩 컨테이너)을 깨끗하게 걷어내줘.
+```
+
+### 2. 인터랙티브 포렌식 타임라인 웹 뷰어 생성
 ```markdown
 Meng To 스타일의 부드러운 스크롤 인터랙션과 Linear 다크 글래스 UI를 적용한 포렌식 타임라인 HTML을 만들어줘.
 ```
 
-### 2. 포렌식 감정보고서 문장 교정 및 감수
+### 3. 포렌식 감정보고서 문장 교정 및 감수
 ```markdown
 이 포렌식 감정서 초안의 어색한 번역투 문장을 다듬고, 법원 제출용 격식체로 교정해줘. (수치/해시값 절대 보존)
 ```
 
-### 3. 비디오 오디오 파형 + 필름스트립 타임라인 생성
+### 4. 비디오 오디오 파형 + 필름스트립 타임라인 생성
 ```bash
 python skills/video-editor/helpers/timeline_view.py "C:\경로\CCTV.mp4" 10.0 60.0 -o timeline_strip.png
 ```
 
-### 4. 동영상 증거물 분석 & 프레임 추출
+### 5. 동영상 증거물 분석 & 프레임 추출
 ```bash
 python skills/forensic-video/scripts/watch.py "C:\경로\CCTV_영상.mp4" --resolution 720
 ```
 
-### 5. 포렌식 인포그래픽 시각화 생성
+### 6. 포렌식 인포그래픽 시각화 생성
 ```bash
 python skills/infographic-creator/scripts/render_infographic.py --output forensic_chart.html
 ```
 
-### 6. 시계열 타임라인 생성
+### 7. 시계열 타임라인 생성
 ```bash
 python skills/forensic-timeline/scripts/generate_timeline.py --title "2024-01-16 PC 사용기록 전수 타임라인" --output timeline.html
 ```
 
-### 7. 파일 타임스탬프 & 무결성 감정
+### 8. 파일 타임스탬프 & 무결성 감정
 ```bash
 python skills/forensic-audit/scripts/audit_timestamps.py "C:\경로\피분석파일.ext"
 ```
 
-### 8. 카카오톡 대화방 파싱
+### 9. 카카오톡 대화방 파싱
 ```bash
 python skills/kakao-chat-extractor/scripts/parse_kakao.py "카카오톡_대화내용.txt" --keyword "횡령" --output parsed.json
 ```

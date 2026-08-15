@@ -1,0 +1,7 @@
+{
+  "name": "slopslap",
+  "version": "1.1.0",
+  "private": true,
+  "type": "module",
+  "description": "slopslap - AI-slop elimination pipeline"
+}
