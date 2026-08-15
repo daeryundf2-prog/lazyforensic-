@@ -1,22 +1,22 @@
 {
 	"name": "lazyforensic",
-	"version": "0.5.0",
+	"version": "0.6.0",
 	"description": "Digital Forensic & Incident Response (DFIR) specialist suite for Daeryun Law Forensic Center.",
 	"author": {
 		"name": "daeryundf2-prog",
 		"url": "https://github.com/daeryundf2-prog"
 	},
 	"license": "MIT",
-	"keywords": ["antigravity", "antigravity-plugin", "forensic", "dfir", "daeryun", "skills", "mcp", "korean-law", "timeline", "tamper-audit", "video-forensics", "video-editor", "infographic", "antv"],
+	"keywords": ["antigravity", "antigravity-plugin", "forensic", "dfir", "daeryun", "skills", "mcp", "korean-law", "writing-reviewer", "timeline", "tamper-audit", "video-forensics", "video-editor", "infographic", "antv"],
 	"skills": "./skills/",
 	"mcpServers": "./mcp_config.json",
 	"interface": {
 		"displayName": "LazyForensic",
 		"shortDescription": "Digital Forensics, Legal Tech & Evidence Engineering Suite",
-		"longDescription": "LazyForensic provides professional digital forensics and legal intelligence tools: Korean Law MCP (법제처 법령/판례 검색·인용검증), automated timeline synthesis, timestamp tamper auditing ($MFT/SI vs FN, media metadata), CCTV/Blackbox video analysis with Gemini vision, AI video editing & filmstrip rendering, AntV Infographic generation, KakaoTalk & mobile chat extraction, DLP & leakage cross-correlation, and court-admissible forensic report drafting for Daeryun Law Forensic Center.",
+		"longDescription": "LazyForensic provides professional digital forensics and legal intelligence tools: Korean Law MCP (법제처 법령/판례 검색·인용검증), Korean Writing Reviewer (공문서/감정서 전문 한국어 교정·검토), automated timeline synthesis, timestamp tamper auditing ($MFT/SI vs FN, media metadata), CCTV/Blackbox video analysis with Gemini vision, AI video editing & filmstrip rendering, AntV Infographic generation, KakaoTalk & mobile chat extraction, DLP & leakage cross-correlation, and court-admissible forensic report drafting for Daeryun Law Forensic Center.",
 		"developerName": "daeryundf2-prog",
 		"category": "Digital Forensics & Legal Tech",
-		"capabilities": ["Korean Law MCP (법제처 법령/판례)", "Timeline Generation", "Timestamp Tamper Audit", "Forensic Video Analysis", "AI Video Editing & Filmstrip", "AntV Infographics", "KakaoTalk Parser", "DLP Leakage Analysis", "Forensic Reporting", "Legal Consulting"],
+		"capabilities": ["Korean Law MCP (법제처 법령/판례)", "Korean Writing Reviewer", "Timeline Generation", "Timestamp Tamper Audit", "Forensic Video Analysis", "AI Video Editing & Filmstrip", "AntV Infographics", "KakaoTalk Parser", "DLP Leakage Analysis", "Forensic Reporting", "Legal Consulting"],
 		"brandColor": "#1E3A8A"
 	}
 }
