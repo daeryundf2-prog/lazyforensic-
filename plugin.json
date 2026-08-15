@@ -1,21 +1,21 @@
 {
 	"name": "lazyforensic",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"description": "Digital Forensic & Incident Response (DFIR) specialist suite for Daeryun Law Forensic Center.",
 	"author": {
 		"name": "daeryundf2-prog",
 		"url": "https://github.com/daeryundf2-prog"
 	},
 	"license": "MIT",
-	"keywords": ["antigravity", "antigravity-plugin", "forensic", "dfir", "daeryun", "skills", "timeline", "tamper-audit"],
+	"keywords": ["antigravity", "antigravity-plugin", "forensic", "dfir", "daeryun", "skills", "timeline", "tamper-audit", "video-forensics"],
 	"skills": "./skills/",
 	"interface": {
 		"displayName": "LazyForensic",
 		"shortDescription": "Digital Forensics & Evidence Engineering Suite",
-		"longDescription": "LazyForensic provides professional digital forensics tools: automated timeline synthesis, timestamp tamper auditing ($MFT/SI vs FN, media metadata), KakaoTalk & mobile chat extraction, DLP & leakage cross-correlation, and court-admissible forensic report drafting for Daeryun Law Forensic Center.",
+		"longDescription": "LazyForensic provides professional digital forensics tools: automated timeline synthesis, timestamp tamper auditing ($MFT/SI vs FN, media metadata), CCTV/Blackbox video analysis with Gemini vision, KakaoTalk & mobile chat extraction, DLP & leakage cross-correlation, and court-admissible forensic report drafting for Daeryun Law Forensic Center.",
 		"developerName": "daeryundf2-prog",
 		"category": "Digital Forensics & Legal Tech",
-		"capabilities": ["Timeline Generation", "Timestamp Tamper Audit", "KakaoTalk Parser", "DLP Leakage Analysis", "Forensic Reporting", "Legal Consulting"],
+		"capabilities": ["Timeline Generation", "Timestamp Tamper Audit", "Forensic Video Analysis", "KakaoTalk Parser", "DLP Leakage Analysis", "Forensic Reporting", "Legal Consulting"],
 		"brandColor": "#1E3A8A"
 	}
 }
