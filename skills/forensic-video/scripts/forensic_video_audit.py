@@ -106,20 +106,22 @@ def main():
         return
 
     print("=" * 70)
-    print("  [법무법인 대륜 디지털포렌식센터] 동영상 증거물 메타데이터 & 무결성 감정")
+    print("  동영상 컨테이너 태그 / 파일 해시 (ffprobe + os.stat)")
     print("=" * 70)
     print(f"  파일명             : {result['file_name']}")
     print(f"  파일 크기          : {result['file_size']:,} Bytes")
-    print(f"  증거 무결성(SHA256): {result['sha256']}")
+    print(f"  SHA-256            : {result['sha256']}")
     print("-" * 70)
     print(f"  파일시스템 생성일시 : {result['fs_created']}")
     print(f"  파일시스템 수정일시 : {result['fs_modified']}")
-    print(f"  컨테이너 내부 촬영일: {result['container_creation_time']}")
-    print(f"  인코더/기기 정보    : {result['encoder_brand']}")
+    print(f"  컨테이너 태그 시각  : {result['container_creation_time']}")
+    print(f"  인코더/브랜드 태그  : {result['encoder_brand']}")
     print("-" * 70)
     print(f"  재생 시간          : {result['duration_sec']:.2f} 초")
     print(f"  비디오 사양        : {result['video']['width']}x{result['video']['height']} | {result['video']['codec']} | FPS: {result['video']['fps']}")
     print(f"  오디오 사양        : {result['audio']['codec']} ({result['audio']['channels']} ch, {result['audio']['sample_rate']} Hz)")
+    print("-" * 70)
+    print("  [한계] 컨테이너 태그는 촬영 시각의 법정 증명이 아니다. 로컬 시각은 타임존 미변환.")
     print("=" * 70)
 
 

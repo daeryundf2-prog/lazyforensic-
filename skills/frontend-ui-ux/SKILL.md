@@ -3,9 +3,11 @@ name: frontend-ui-ux
 description: Designer-turned-developer who crafts stunning UI/UX even without design mockups. Meng To(DesignCode) 127개 디자인 스킬 기반으로 최고급 포렌식 웹 뷰어, 인터랙티브 타임라인, 다크 글래스 UI, 3D WebGL 차트 및 GSAP 애니메이션을 구현하는 프론트엔드 UI/UX 스킬.
 ---
 
-# frontend-ui-ux — Meng To(DesignCode) 프리미엄 UI/UX 엔지니어링 스킬
+# frontend-ui-ux — Meng To UI 카탈로그
 
-이 스킬은 **Meng To(DesignCode)**의 127개 전문 UI/UX 디자인 스킬 카탈로그(`lazyforensic/mengto-skills/`)를 기반으로, 별도의 피그마 시안 없이도 **Awwwards 수상작 수준의 미려하고 인터랙티브한 웹 인터페이스, 포렌식 타임라인 뷰어, 데이터 시각화 대시보드**를 자동 구현합니다.
+웹 UI 참고용이다. 포렌식 수집/감정 도구가 아니며, DesignCode 자산의 재배포 권한을 보증하지 않는다.
+
+이 스킬은 `mengto-skills/`의 레이아웃 규칙을 읽어 HTML 뷰어를 만들 때 쓴다.
 
 ---
 

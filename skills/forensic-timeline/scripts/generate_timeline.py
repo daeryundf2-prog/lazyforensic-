@@ -6,9 +6,10 @@ Digital Forensic Interactive Timeline Generator
 Generates standalone HTML timeline with search, category filtering, and print-optimized CSS.
 """
 
-import sys
-import json
 import argparse
+import html
+import json
+import sys
 from datetime import datetime
 
 HTML_TEMPLATE = """<!DOCTYPE html>
@@ -214,12 +215,12 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <div class="container">
   <header>
     <h1>{title}</h1>
-    <p>법무법인(유한) 대륜 디지털포렌식센터 시계열 전수 타임라인 분석 보고서</p>
+    <p>입력 JSON을 시각화한 타임라인. 원본 아티팩트를 대체하지 않으며, 미입력 시 샘플 증거를 생성하지 않는다.</p>
     <div class="meta-grid">
       <div class="meta-item"><div class="meta-label">분석 대상</div><div class="meta-val">{target}</div></div>
-      <div class="meta-item"><div class="meta-label">분석 일자</div><div class="meta-val">{analyzed_at}</div></div>
+      <div class="meta-item"><div class="meta-label">생성 일시</div><div class="meta-val">{analyzed_at}</div></div>
       <div class="meta-item"><div class="meta-label">총 이벤트 건수</div><div class="meta-val">{total_events} 건</div></div>
-      <div class="meta-item"><div class="meta-label">타임존</div><div class="meta-val">KST (UTC+09:00)</div></div>
+      <div class="meta-item"><div class="meta-label">타임존</div><div class="meta-val">{timezone}</div></div>
     </div>
   </header>
 
@@ -275,29 +276,54 @@ function filterTimeline() {{
 </html>
 """
 
-def generate_html(events, title="디지털포렌식 시계열 타임라인", target="피분석 기기 / 저장매체"):
+def escape_text(value):
+    if value is None:
+        return ""
+    return html.escape(str(value), quote=True)
+
+
+def load_events(path):
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    if not isinstance(data, list):
+        raise ValueError("input JSON must be a list of event objects")
+    events = []
+    for i, ev in enumerate(data):
+        if not isinstance(ev, dict):
+            raise ValueError(f"event[{i}] must be an object")
+        events.append(ev)
+    return events
+
+
+def generate_html(
+    events,
+    title="디지털포렌식 시계열 타임라인",
+    target="피분석 기기 / 저장매체",
+    timezone_label="as provided (not converted)",
+):
     items_html = []
     category_map = {
-        'critical': ('tag-critical', 'badge-critical', '🚨 유출의심'),
-        'file': ('tag-file', 'badge-file', '📁 파일행위'),
-        'web': ('tag-web', 'badge-web', '🌐 웹/검색'),
-        'chat': ('tag-chat', 'badge-chat', '💬 메신저'),
-        'system': ('tag-system', 'badge-system', '⚙️ 시스템'),
+        "critical": ("tag-critical", "badge-critical", "유출의심"),
+        "file": ("tag-file", "badge-file", "파일행위"),
+        "web": ("tag-web", "badge-web", "웹/검색"),
+        "chat": ("tag-chat", "badge-chat", "메신저"),
+        "system": ("tag-system", "badge-system", "시스템"),
     }
 
     for ev in events:
-        cat = ev.get('category', 'file').lower()
+        cat = str(ev.get("category", "file")).lower()
         if cat not in category_map:
-            cat = 'file'
+            cat = "file"
         tag_cls, badge_cls, badge_label = category_map[cat]
-        time_str = ev.get('timestamp', '-')
-        desc = ev.get('description', '')
-        details = ev.get('details', '')
-        
-        detail_html = f'<div class="item-details">{details}</div>' if details else ''
+        time_str = escape_text(ev.get("timestamp", "-"))
+        desc = escape_text(ev.get("description", ""))
+        details = escape_text(ev.get("details", ""))
+        safe_cat = escape_text(cat)
+
+        detail_html = f'<div class="item-details">{details}</div>' if details else ""
 
         item = f"""
-        <div class="timeline-item {tag_cls}" data-category="{cat}">
+        <div class="timeline-item {tag_cls}" data-category="{safe_cat}">
           <div class="item-header">
             <span class="item-time">{time_str}</span>
             <span class="item-badge {badge_cls}">{badge_label}</span>
@@ -310,36 +336,50 @@ def generate_html(events, title="디지털포렌식 시계열 타임라인", tar
         """
         items_html.append(item)
 
-    now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    now_str = datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S %z")
     return HTML_TEMPLATE.format(
-        title=title,
-        target=target,
-        analyzed_at=now_str,
+        title=escape_text(title),
+        target=escape_text(target),
+        analyzed_at=escape_text(now_str),
+        timezone=escape_text(timezone_label),
         total_events=len(events),
-        timeline_items="\n".join(items_html)
+        timeline_items="\n".join(items_html),
     )
 
-if __name__ == '__main__':
+
+def main(argv=None):
     parser = argparse.ArgumentParser(description="Forensic Timeline HTML Generator")
-    parser.add_argument('--input', help="Input JSON file containing events list")
-    parser.add_argument('--output', default="timeline_report.html", help="Output HTML path")
-    parser.add_argument('--title', default="디지털포렌식 시계열 전수 타임라인", help="Report title")
-    parser.add_argument('--target', default="피분석 저장매체 (PC/Mobile)", help="Target device")
-    args = parser.parse_args()
+    parser.add_argument("--input", default=None, help="Input JSON file containing an events list")
+    parser.add_argument("--output", default="timeline_report.html", help="Output HTML path")
+    parser.add_argument("--title", default="디지털포렌식 시계열 타임라인", help="Report title")
+    parser.add_argument("--target", default="피분석 저장매체 (PC/Mobile)", help="Target device")
+    parser.add_argument(
+        "--timezone",
+        default="as provided (not converted)",
+        help="Label only. This tool does not convert timestamps.",
+    )
+    args = parser.parse_args(argv)
+    if not args.input:
+        print("[-] --input is required. Refusing to emit sample evidence.", file=sys.stderr)
+        return 2
 
-    if args.input:
-        with open(args.input, 'r', encoding='utf-8') as f:
-            events_data = json.load(f)
-    else:
-        # Sample test data
-        events_data = [
-            {"timestamp": "2024-01-16 14:02:11", "category": "system", "description": "사용자 계정 로그인 성공", "details": "User: user1 | EventID: 4624 | LogonType: 2 (Interactive)"},
-            {"timestamp": "2024-01-16 14:15:30", "category": "web", "description": "구글 검색: 대용량 클라우드 파일 전송", "details": "URL: https://www.google.com/search?q=대용량+클라우드+파일+전송"},
-            {"timestamp": "2024-01-16 14:32:05", "category": "critical", "description": "외장 USB 드라이브 연결 및 대량 복사", "details": "Drive: E:\\ (SanDisk 64GB) | Target: 152개 핵심 도면 파일 복사"},
-            {"timestamp": "2024-01-16 15:10:44", "category": "chat", "description": "카카오톡 대화방 파일 전송", "details": "Receiver: 협력사 담당자 | File: 최종_설계안.zip (48MB)"}
-        ]
+    try:
+        events_data = load_events(args.input)
+    except (OSError, json.JSONDecodeError, ValueError) as exc:
+        print(f"[-] Failed to load events: {exc}", file=sys.stderr)
+        return 2
 
-    html_out = generate_html(events_data, title=args.title, target=args.target)
-    with open(args.output, 'w', encoding='utf-8') as f:
+    html_out = generate_html(
+        events_data,
+        title=args.title,
+        target=args.target,
+        timezone_label=args.timezone,
+    )
+    with open(args.output, "w", encoding="utf-8") as f:
         f.write(html_out)
-    print(f"[+] Forensic Timeline successfully generated: {args.output} ({len(events_data)} events)")
+    print(f"[+] Timeline HTML written: {args.output} ({len(events_data)} events)")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

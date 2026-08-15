@@ -3,9 +3,11 @@ name: design-system
 description: 74개 이상의 글로벌 최고급 브랜드(Linear, Apple, Stripe, Vercel, Raycast, Supabase 등) DESIGN.md 명세를 기반으로 타임라인 뷰어, 포렌식 대시보드, 웹 리포트 및 인포그래픽에 프리미엄 UI/UX 디자인 시스템을 적용하는 스킬.
 ---
 
-# design-system — 프리미엄 UI/UX 디자인 시스템 & DESIGN.md 카탈로그
+# design-system — 벤더 DESIGN.md 카탈로그
 
-이 스킬은 `lazyforensic/design-systems/`에 내장된 74개 글로벌 브랜드의 정밀한 `DESIGN.md` 토큰(색상 팔레트, 타이포그래피 스케일, 간격, 보더/섀도우, 다크/라이트 테마)을 참조하여, **포렌식 타임라인 HTML, 통계 대시보드, 웹 보고서, AntV 인포그래픽**을 최고급 상용 수준의 디자인 퀄리티로 구축합니다.
+UI 토큰 참고용이다. 포렌식 엔진이 아니며, 브랜드 상표/디자인의 상업 재배포 권한을 보증하지 않는다.
+
+이 스킬은 `design-systems/`의 `DESIGN.md` 토큰을 읽어 웹 화면 스타일을 맞출 때 쓴다.
 
 ---
 

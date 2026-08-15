@@ -1,6 +1,6 @@
 ---
 name: video-editor
-description: CCTV, 블랙박스, 동영상 증거물의 구간 발췌(Trim), 오디오 파형/필름스트립 시각화(Timeline View), 화질 보정(Color Grade), 법원 제출용 타임스탬프·자막 합성 번인을 수행하는 AI 비디오 에디팅 스킬.
+description: 동영상 구간 자르기, 필름스트립/파형 이미지, 자막 번인 보조. 원본을 대체하는 법원 제출본이 아니다.
 ---
 
 # video-editor — 포렌식 동영상 편집 & 필름스트립 시각화 스킬
@@ -22,14 +22,14 @@ description: CCTV, 블랙박스, 동영상 증거물의 구간 발췌(Trim), 오
 ### 1. 필름스트립 + 오디오 파형 시각화 (`timeline_view.py`)
 * 특정 시간대의 비디오 프레임과 오디오 파형, 침묵 구간을 결합한 고해상도 타임라인 이미지를 생성합니다:
 ```bash
-python C:\Users\HP\.gemini\config\plugins\lazyforensic\skills\video-editor\helpers\timeline_view.py "<동영상경로>" <시작초> <종료초> -o timeline_strip.png --n-frames 12
+python skills/video-editor/helpers/timeline_view.py "<동영상경로>" <시작초> <종료초> -o timeline_strip.png --n-frames 12
 ```
 
 ### 2. 정밀 컷팅 및 렌더링 파이프라인 (`render.py`)
 * 오디오 팝 노이즈 방지(30ms 오디오 페이드) 및 무손실 스트림 복사를 통해 클립을 합성/추출합니다:
 ```bash
 # EDL(Edit Decision List) JSON 기반 렌더링
-python C:\Users\HP\.gemini\config\plugins\lazyforensic\skills\video-editor\helpers\render.py edl.json -o final_evidence.mp4 --build-subtitles
+python skills/video-editor/helpers/render.py edl.json -o extracted_clip.mp4 --build-subtitles
 ```
 
 ### 3. 영상 화질 개선 및 저조도 보정 (`grade.py`)

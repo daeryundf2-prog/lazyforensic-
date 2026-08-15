@@ -1,136 +1,85 @@
 # LazyForensic
 
-> **Digital Forensic & Incident Response (DFIR) Specialist Suite for Google Antigravity**  
-> 법무법인(유한) 대륜 디지털포렌식센터 맞춤형 디지털 포렌식·법률 AI·감정보고서·문서 교정·동영상 증거물 가공·AI 슬롭 제거·프리미엄 UI/UX 엔지니어링 독립 플러그인
+Google Antigravity용 DFIR **초안 보조** 플러그인.
+
+법원 제출 적격 감정 스위트가 아니다. `$MFT` 파서, Timestomping 판정기, 법률 자문 엔진이 아니다.
 
 ---
 
-## 🌟 개요 (Overview)
+## 실제 구현 범위
 
-`LazyForensic`은 Google Antigravity 에이전트 환경에서 동작하는 전문 디지털 포렌식 & 리걸테크 확장 플러그인입니다.  
-개발·코딩용 플러그인(`LazyAntigravity`)과 완전히 분리되어 독립적으로 동작하며, **SlopSlap(UI AI-Slop 기계적 제거 파이프라인)**, **Meng To(DesignCode) 127개 프리미엄 UI/UX 스킬**, **74+ 브랜드 DESIGN.md 디자인 시스템**, **Korean Law MCP(법제처 법령/판례 실시간 조회·인용검증)**, **Korean Writing Reviewer(법원/로펌 공문서 전문 한국어 감수·교정)**, 법원/수사기관 제출용 포렌식 감정보고서 작성, 시계열 타임라인 자동 생성, 파일 타임스탬프 위변조 감정, CCTV/블랙박스/동영상 증거물 멀티모달 분석 및 정밀 구간 편집, AntV 전문 인포그래픽 시각화, 모바일/카카오톡 대화 분석, DLP 정보유출 교차 분석을 자동화합니다.
-
----
-
-## 🖐️ UI 슬롭 기계적 제거 엔진 (SlopSlap by VibeDesignLab)
-
-* **`slopslap`**: AI가 생성한 촌스러운 UI 클리셰(오버라인·eyebrow 뱃지, 플로팅 글로우 오브/blob, 그라디언트 텍스트, 이모지 남발, 무지개 팔레트, 불필요한 중첩 컨테이너)를 5단계 병렬 파이프라인(A~E 영역)으로 실측 감지하고 기계적으로 완벽 제거.
-
----
-
-## ✨ 내장 UI/UX & 디자인 카탈로그
-
-* **`mengto-skills/`**: Meng To(DesignCode)의 127개 프론트엔드/인터랙션 스킬 (부드러운 스크롤 타임라인, 다크 글래스모피즘, 테크니컬 와이어프레임 뷰, Three.js 3D 유출경로 시각화 등)
-* **`design-systems/`**: Linear, Apple, Stripe, Vercel, Raycast, Supabase 등 74개 글로벌 최고급 브랜드 정밀 `DESIGN.md` 토큰
-
----
-
-## ⚖️ 내장 MCP 서버 (Bundled MCP Server)
-
-* **`korean_law`**: 법제처 42개 Open API 연동 대한민국 법령·대법원 판례·행정규칙 실시간 검색, 조문 영향 분석, 판례 인용 검증(Citation Verification) 엔진
-
----
-
-## 🛠️ 핵심 스킬 구성 (Included Skills)
-
-| 스킬명 | 설명 | 주요 실행 스크립트 / 레퍼런스 |
+| 구성 | 하는 일 | 하지 않는 일 |
 | :--- | :--- | :--- |
-| **`slopslap`** | 5대 영역(대표슬롭·레이아웃·간격·타이포·색) UI AI-Slop 병렬 정적 점검 및 기계적 제거 | `scripts/scan-slop-signals.mjs`, `scripts/fetch-references.mjs` |
-| **`frontend-ui-ux`** | Meng To 127개 UI/UX 스킬 기반 인터랙티브 타임라인 뷰어, 다크 글래스 대시보드, 3D WebGL 시각화 | `mengto-skills/*` |
-| **`design-system`** | 74개 글로벌 브랜드 DESIGN.md 기반 타임라인 뷰어, 포렌식 대시보드, 웹 리포트 프리미엄 UI/UX 스타일링 | `design-systems/*/DESIGN.md` |
-| **`korean-writing-reviewer`** | 공문서, 법률 의견서, 기술 감정서, 보고서의 전문 한국어 교정, 번역투/상투적 AI 문체 제거, 원문 수치·해시 보존 검수 | `references/scoring-report.md`, `references/editor-protection.md` |
-| **`legal-forensic-consult`** | Korean Law MCP 연동 법제처 법령/판례 검색, 포렌식 위임 계약서, 보수기준표 견적, 비동의 조사/압수수색 적법성 자문 | `templates/contract_template.md` |
-| **`video-editor`** | CCTV/블랙박스 증거 영상 정밀 컷팅(Trim), 오디오 파형+필름스트립 타임라인 생성, 화질 보정, 자막 번인 렌더링 | `helpers/timeline_view.py`, `helpers/render.py` |
-| **`forensic-video`** | CCTV, 블랙박스, 휴대폰 촬영 동영상(.mov/.mp4), 온라인 영상 URL 멀티모달 프레임 캡처, 음성 전사(STT), 메타데이터 감정 | `scripts/watch.py`, `scripts/forensic_video_audit.py` |
-| **`infographic-creator`** | AntV Infographic 엔진 기반 포렌식 절차도, 유출 경로도, 타임라인 요약 인포그래픽 SVG/HTML 생성 | `scripts/render_infographic.py` |
-| **`forensic-timeline`** | PC 사용기록, $MFT, 이벤트 로그를 결합한 인터랙티브 HTML 타임라인 및 인쇄용 PDF 자동 생성 | `scripts/generate_timeline.py` |
-| **`forensic-audit`** | 파일 타임스탬프($SI vs $FN), 생성일시>수정일시 역전, 미디어/Maya 메타데이터 위변조 과학수사 감정 | `scripts/audit_timestamps.py` |
-| **`forensic-report`** | 법무법인 대륜 디지털포렌식센터 표준 서식 기반 공식 감정서, 기술자문 의견서 작성 및 감수 | `templates/forensic_report_template.md` |
-| **`kakao-chat-extractor`** | 대용량 카카오톡/모바일 대화방 텍스트 및 DB 파싱, 특정 인물·일자·키워드 대화 추출 | `scripts/parse_kakao.py` |
-| **`dlp-leakage-detector`** | 기업 내부정보 유출 시 DLP 로그, 구글 검색어, USB 연결 기록을 결합한 유출 타임라인 산출 | - |
+| `forensic-timeline` | `--input` JSON → HTML | 입력 없이 샘플 유출 사건 생성, `$MFT` 수집 |
+| `forensic-audit` | `os.stat` + SHA-256/MD5 | `$SI` vs `$FN`, Maya, MOV `mvhd` |
+| `kakao-chat-extractor` | 모바일/PC **텍스트 내보내기** | SQLite `chat_logs`, 백업 DB |
+| `forensic-report` | 중립 보고서 초안 | "명백히 입증", 법원 유효 단정 |
+| `legal-forensic-consult` | 계약 서식 빈칸, 법령 조회 보조 | 법률 자문 |
+| `dlp-leakage-detector` | 사람이 로그를 맞추는 체크리스트 | 자동 탐지 스크립트 |
+| `forensic-video` | ffmpeg/ffprobe 있으면 프레임·태그 추출 | 촬영일시 조작의 법정 증명 |
+| `video-editor` | 클립/필름스트립 보조 | 원본을 대체하는 무손실 감정본 |
+| `korean-law-mcp` | 법제처 API 클라이언트 **소스** | 빌드 없이 즉시 기동, 변호사 대체 |
+| `korean-writing-reviewer` | 한국어 문장 검토 | 사실 생성 |
+| `design-systems`, `mengto-skills`, `slopslap` | 벤더 UI 카탈로그 | 포렌식 엔진 |
 
 ---
 
-## 📂 디렉토리 구조 (Directory Structure)
+## 빠른 시작
 
-```text
-lazyforensic/
-├── plugin.json                 # 플러그인 매니페스트 (Antigravity 자동 등록)
-├── mcp_config.json             # Korean Law MCP 서버 설정
-├── README.md                   # 프로젝트 설명서 및 실행 가이드
-├── .gitignore                  # Git 관리 제외 규칙
-├── mengto-skills/              # [127개 스킬] Meng To(DesignCode) UI/UX 스킬 모음
-├── design-systems/             # [74개 브랜드] Linear, Apple, Stripe 등 DESIGN.md 카탈로그
-├── korean-law-mcp/             # [번들 MCP] 법제처 법령/판례 검색·인용검증 런타임
-├── templates/                  # 법원/의뢰인 제출 표준 서식
-│   ├── forensic_report_template.md  # 포렌식 감정의견서 템플릿
-│   └── contract_template.md         # 디지털포렌식 위임계약서 서식
-└── skills/
-    ├── slopslap/               # [스킬] UI AI-Slop 기계적 제거 파이프라인 (VibeDesignLab)
-    ├── frontend-ui-ux/         # [스킬] Meng To UI/UX 인터랙티브 웹 엔지니어링
-    ├── design-system/          # [스킬] 74개 브랜드 프리미엄 UI/UX 스타일링
-    ├── korean-writing-reviewer/# [스킬] 공문서/감정서 전문 한국어 문장 교정·검토
-    ├── legal-forensic-consult/ # [스킬] 포렌식 법률/판례/계약 자문 (MCP 연동)
-    ├── video-editor/           # [스킬] CCTV/블랙박스 증거영상 편집 & 필름스트립 생성
-    ├── forensic-video/         # [스킬] CCTV/블랙박스/동영상 멀티모달 분석
-    ├── infographic-creator/    # [스킬] AntV 기반 인포그래픽/다이어그램 생성
-    ├── forensic-timeline/      # [스킬] 타임라인 생성
-    ├── forensic-audit/         # [스킬] 타임스탬프 감정
-    ├── forensic-report/        # [스킬] 감정보고서 작성
-    ├── kakao-chat-extractor/   # [스킬] 카카오톡/메신저 파싱
-    └── dlp-leakage-detector/   # [스킬] DLP/유출 분석
+타임라인은 입력 JSON이 필수다.
+
+```bash
+python skills/forensic-timeline/scripts/generate_timeline.py --input events.json --output timeline.html
+python skills/forensic-audit/scripts/audit_timestamps.py "대상파일.ext"
+python skills/kakao-chat-extractor/scripts/parse_kakao.py "카카오톡_대화내용.txt" --output parsed.json
+python -m unittest discover -s test -v
+```
+
+`events.json` 예:
+
+```json
+[
+  {
+    "timestamp": "2024-01-16 14:02:11",
+    "category": "system",
+    "description": "로그온",
+    "details": "EventID 4624"
+  }
+]
 ```
 
 ---
 
-## 🚀 빠른 시작 (Quick Start)
+## Korean Law MCP
 
-### 1. UI 화면 AI-Slop 기계적 제거
-```markdown
-이 타임라인 대시보드 웹페이지에서 AI 슬롭(오버라인 뱃지, 불필요한 글로우, 중첩 컨테이너)을 깨끗하게 걷어내줘.
-```
+`mcp_config.json`은 `korean-law-mcp/build/index.js`를 가리킨다. 이 저장소에는 `build/`가 없다.
 
-### 2. 인터랙티브 포렌식 타임라인 웹 뷰어 생성
-```markdown
-Meng To 스타일의 부드러운 스크롤 인터랙션과 Linear 다크 글래스 UI를 적용한 포렌식 타임라인 HTML을 만들어줘.
-```
-
-### 3. 포렌식 감정보고서 문장 교정 및 감수
-```markdown
-이 포렌식 감정서 초안의 어색한 번역투 문장을 다듬고, 법원 제출용 격식체로 교정해줘. (수치/해시값 절대 보존)
-```
-
-### 4. 비디오 오디오 파형 + 필름스트립 타임라인 생성
 ```bash
-python skills/video-editor/helpers/timeline_view.py "C:\경로\CCTV.mp4" 10.0 60.0 -o timeline_strip.png
+cd korean-law-mcp
+npm install --ignore-scripts
+npm run build
 ```
 
-### 5. 동영상 증거물 분석 & 프레임 추출
-```bash
-python skills/forensic-video/scripts/watch.py "C:\경로\CCTV_영상.mp4" --resolution 720
-```
-
-### 6. 포렌식 인포그래픽 시각화 생성
-```bash
-python skills/infographic-creator/scripts/render_infographic.py --output forensic_chart.html
-```
-
-### 7. 시계열 타임라인 생성
-```bash
-python skills/forensic-timeline/scripts/generate_timeline.py --title "2024-01-16 PC 사용기록 전수 타임라인" --output timeline.html
-```
-
-### 8. 파일 타임스탬프 & 무결성 감정
-```bash
-python skills/forensic-audit/scripts/audit_timestamps.py "C:\경로\피분석파일.ext"
-```
-
-### 9. 카카오톡 대화방 파싱
-```bash
-python skills/kakao-chat-extractor/scripts/parse_kakao.py "카카오톡_대화내용.txt" --keyword "횡령" --output parsed.json
-```
+법제처 키는 `LAW_OC` 또는 `KOREAN_LAW_API_KEY`로 넣는다. 공개 폴백 서버는 쿼터/429가 있다.  
+조회 결과는 법률 자문이 아니다.
 
 ---
 
-## 📄 라이선스 (License)
-MIT License (c) 2026 daeryundf2-prog
+## Third-party trees
+
+루트 라이선스는 MIT다. 아래 트리는 각자 고지/저작권을 따른다.
+
+| 경로 | 출처 | 비고 |
+| :--- | :--- | :--- |
+| `korean-law-mcp/` | chrisryugj/korean-law-mcp (MIT, Copyright Chris) | 원 고지 유지 |
+| `skills/slopslap/` | vibedesignlab/slopslap | 원 라이선스 확인 필요 |
+| `design-systems/` | VoltAgent 브랜드 DESIGN.md 카탈로그 | 브랜드 상표/디자인 자산. 상업 재배포 전 검토 |
+| `mengto-skills/` | Meng To / DesignCode 스킬·데모 | 저작권·이미지 재배포 위험 |
+
+이 트리들을 포렌식 증거 도구로 광고하지 않는다. 삭제 여부는 별도 결정.
+
+---
+
+## 라이선스
+
+MIT License. `LICENSE` 참고.
