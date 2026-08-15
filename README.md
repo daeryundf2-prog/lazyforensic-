@@ -1,20 +1,21 @@
 # LazyForensic
 
 > **Digital Forensic & Incident Response (DFIR) Specialist Suite for Google Antigravity**  
-> 법무법인(유한) 대륜 디지털포렌식센터 맞춤형 디지털 포렌식·법률 AI·감정보고서·문서 교정·동영상 증거물 가공·프리미엄 UI/UX 디자인 독립 플러그인
+> 법무법인(유한) 대륜 디지털포렌식센터 맞춤형 디지털 포렌식·법률 AI·감정보고서·문서 교정·동영상 증거물 가공·프리미엄 UI/UX 엔지니어링 독립 플러그인
 
 ---
 
 ## 🌟 개요 (Overview)
 
 `LazyForensic`은 Google Antigravity 에이전트 환경에서 동작하는 전문 디지털 포렌식 & 리걸테크 확장 플러그인입니다.  
-개발·코딩용 플러그인(`LazyAntigravity`)과 완전히 분리되어 독립적으로 동작하며, **74+ 브랜드 DESIGN.md 디자인 시스템**, **Korean Law MCP(법제처 법령/판례 실시간 조회·인용검증)**, **Korean Writing Reviewer(법원/로펌 공문서 전문 한국어 감수·교정)**, 법원/수사기관 제출용 포렌식 감정보고서 작성, 시계열 타임라인 자동 생성, 파일 타임스탬프 위변조 감정, CCTV/블랙박스/동영상 증거물 멀티모달 분석 및 정밀 구간 편집, AntV 전문 인포그래픽 시각화, 모바일/카카오톡 대화 분석, DLP 정보유출 교차 분석을 자동화합니다.
+개발·코딩용 플러그인(`LazyAntigravity`)과 완전히 분리되어 독립적으로 동작하며, **Meng To(DesignCode) 127개 프리미엄 UI/UX 스킬**, **74+ 브랜드 DESIGN.md 디자인 시스템**, **Korean Law MCP(법제처 법령/판례 실시간 조회·인용검증)**, **Korean Writing Reviewer(법원/로펌 공문서 전문 한국어 감수·교정)**, 법원/수사기관 제출용 포렌식 감정보고서 작성, 시계열 타임라인 자동 생성, 파일 타임스탬프 위변조 감정, CCTV/블랙박스/동영상 증거물 멀티모달 분석 및 정밀 구간 편집, AntV 전문 인포그래픽 시각화, 모바일/카카오톡 대화 분석, DLP 정보유출 교차 분석을 자동화합니다.
 
 ---
 
-## 🎨 내장 디자인 시스템 카탈로그 (74+ Brands)
+## ✨ 내장 UI/UX & 디자인 카탈로그
 
-* **`design-systems/`**: Linear, Apple, Stripe, Vercel, Raycast, Supabase, Warp, Cursor, Notion 등 74개 글로벌 최고급 브랜드의 정밀 `DESIGN.md` 토큰(색상, 타이포그래피, 간격, 테마)을 내장하여 타임라인 뷰어 및 포렌식 대시보드를 최상급 퀄리티로 렌더링.
+* **`mengto-skills/`**: Meng To(DesignCode)의 127개 프론트엔드/인터랙션 스킬 (부드러운 스크롤 타임라인, 다크 글래스모피즘, 테크니컬 와이어프레임 뷰, Three.js 3D 유출경로 시각화 등)
+* **`design-systems/`**: Linear, Apple, Stripe, Vercel, Raycast, Supabase 등 74개 글로벌 최고급 브랜드 정밀 `DESIGN.md` 토큰
 
 ---
 
@@ -28,6 +29,7 @@
 
 | 스킬명 | 설명 | 주요 실행 스크립트 / 레퍼런스 |
 | :--- | :--- | :--- |
+| **`frontend-ui-ux`** | Meng To 127개 UI/UX 스킬 기반 인터랙티브 타임라인 뷰어, 다크 글래스 대시보드, 3D WebGL 시각화 | `mengto-skills/*` |
 | **`design-system`** | 74개 글로벌 브랜드 DESIGN.md 기반 타임라인 뷰어, 포렌식 대시보드, 웹 리포트 프리미엄 UI/UX 스타일링 | `design-systems/*/DESIGN.md` |
 | **`korean-writing-reviewer`** | 공문서, 법률 의견서, 기술 감정서, 보고서의 전문 한국어 교정, 번역투/상투적 AI 문체 제거, 원문 수치·해시 보존 검수 | `references/scoring-report.md`, `references/editor-protection.md` |
 | **`legal-forensic-consult`** | Korean Law MCP 연동 법제처 법령/판례 검색, 포렌식 위임 계약서, 보수기준표 견적, 비동의 조사/압수수색 적법성 자문 | `templates/contract_template.md` |
@@ -50,12 +52,14 @@ lazyforensic/
 ├── mcp_config.json             # Korean Law MCP 서버 설정
 ├── README.md                   # 프로젝트 설명서 및 실행 가이드
 ├── .gitignore                  # Git 관리 제외 규칙
+├── mengto-skills/              # [127개 스킬] Meng To(DesignCode) UI/UX 스킬 모음
 ├── design-systems/             # [74개 브랜드] Linear, Apple, Stripe 등 DESIGN.md 카탈로그
 ├── korean-law-mcp/             # [번들 MCP] 법제처 법령/판례 검색·인용검증 런타임
 ├── templates/                  # 법원/의뢰인 제출 표준 서식
 │   ├── forensic_report_template.md  # 포렌식 감정의견서 템플릿
 │   └── contract_template.md         # 디지털포렌식 위임계약서 서식
 └── skills/
+    ├── frontend-ui-ux/         # [스킬] Meng To UI/UX 인터랙티브 웹 엔지니어링
     ├── design-system/          # [스킬] 74개 브랜드 프리미엄 UI/UX 스타일링
     ├── korean-writing-reviewer/# [스킬] 공문서/감정서 전문 한국어 문장 교정·검토
     ├── legal-forensic-consult/ # [스킬] 포렌식 법률/판례/계약 자문 (MCP 연동)
@@ -73,9 +77,9 @@ lazyforensic/
 
 ## 🚀 빠른 시작 (Quick Start)
 
-### 1. 타임라인 뷰어에 Linear 스타일 적용
+### 1. 인터랙티브 포렌식 타임라인 웹 뷰어 생성
 ```markdown
-이 PC 사용기록 분석 타임라인 HTML을 Linear.app 다크 테마 디자인 시스템을 적용해서 만들어줘.
+Meng To 스타일의 부드러운 스크롤 인터랙션과 Linear 다크 글래스 UI를 적용한 포렌식 타임라인 HTML을 만들어줘.
 ```
 
 ### 2. 포렌식 감정보고서 문장 교정 및 감수
