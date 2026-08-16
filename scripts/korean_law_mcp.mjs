@@ -10,14 +10,14 @@ const apiKey = process.env.LAW_OC || process.env.KOREAN_LAW_API_KEY;
 
 if (!existsSync(entrypoint)) {
 	process.stderr.write(
-		"[lazyforensic] korean_law disabled: build/index.js is missing. Run npm install --ignore-scripts && npm run build in korean-law-mcp.\n",
+		"[lazyforensic] korean_law disabled: build/index.js is missing. Run node scripts/setup_korean_law.mjs\n",
 	);
 	process.exit(78);
 }
 
 if (!apiKey) {
 	process.stderr.write(
-		"[lazyforensic] korean_law disabled: set LAW_OC or KOREAN_LAW_API_KEY. Statutes must not be fabricated.\n",
+		"[lazyforensic] korean_law disabled: set LAW_OC or KOREAN_LAW_API_KEY (see .env.example). Statutes must not be fabricated.\n",
 	);
 	process.exit(78);
 }

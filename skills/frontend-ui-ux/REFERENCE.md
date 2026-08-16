@@ -6,7 +6,7 @@ description: 타임라인/대시보드 HTML 레이아웃이 필요할 때. Meng 
 # frontend-ui-ux
 
 1. `mengto-skills/INDEX.md`만 읽는다.
-2. 폴더 **하나**의 `SKILL.md`만 읽는다.
+2. 표의 `category/folder` **하나**의 `SKILL.md`만 읽는다 (`mengto-skills/<category>/<folder>/SKILL.md`).
 3. 구현은 `invoke_subagent` `Model: "flash"`. 도구 모양은 `../references/antigravity-tools.md`.
 
 UI 키트다. 포렌식 수집기가 아니다.

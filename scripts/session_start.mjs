@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { stdin } from "node:process";
 import { fileURLToPath } from "node:url";
@@ -42,9 +42,22 @@ function hookEventName(raw) {
 	return "SessionStart";
 }
 
+function koreanLawStatus() {
+	const built = existsSync(join(root, "korean-law-mcp", "build", "index.js"));
+	const hasKey = Boolean(process.env.LAW_OC || process.env.KOREAN_LAW_API_KEY);
+	if (!built) {
+		return "missing-build";
+	}
+	if (!hasKey) {
+		return "missing-LAW_OC";
+	}
+	return "ready";
+}
+
 function additionalContext() {
 	try {
-		return readFileSync(join(root, "GEMINI.md"), "utf8").replace(/\r\n/g, "\n").trim();
+		const gemini = readFileSync(join(root, "GEMINI.md"), "utf8").replace(/\r\n/g, "\n").trim();
+		return `${gemini}\n\n## 런타임\n\nkorean_law: ${koreanLawStatus()}`;
 	} catch {
 		return "";
 	}

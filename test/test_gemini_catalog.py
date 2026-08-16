@@ -35,9 +35,10 @@ class GeminiCatalogTests(unittest.TestCase):
         # given skills/ is the Antigravity picker root
         files = skill_md_files()
         # then vendor satellites are not registered
-        self.assertLessEqual(len(files), VISIBLE_SKILL_CAP)
+        self.assertEqual(len(files), VISIBLE_SKILL_CAP)
         names = {path.parent.name for path in files}
         self.assertIn("lazyforensic", names)
+        self.assertIn("ui-studio", names)
         self.assertNotIn("infographic-syntax-creator", names)
         self.assertNotIn("manim-video", names)
         self.assertNotIn("slopslap", names)
@@ -91,6 +92,8 @@ class GeminiCatalogTests(unittest.TestCase):
         self.assertIn("실패 폐쇄", ctx)
         self.assertIn("호스트 `Read`", ctx)
         self.assertIn("증거 오디오", ctx)
+        self.assertRegex(ctx, r"korean_law: (ready|missing-build|missing-LAW_OC)")
+        self.assertNotIn("LAW_OC=", ctx)
 
     def test_vendor_antv_kept_off_catalog(self):
         vendor = ROOT / "vendor" / "antv-infographic" / "creator-full.md"
@@ -160,6 +163,69 @@ class GeminiCatalogTests(unittest.TestCase):
         self.assertIn("timeline_report.html", ignored)
         self.assertIn("infographic_preview.html", ignored)
         self.assertIn("korean-law-mcp/build/", ignored)
+        self.assertIn(".env", ignored)
+
+    def test_catalog_indexes_list_full_trees(self):
+        mengto = (ROOT / "mengto-skills" / "INDEX.md").read_text(encoding="utf-8")
+        brands = (ROOT / "design-systems" / "INDEX.md").read_text(encoding="utf-8")
+        antv = (ROOT / "vendor" / "antv-infographic" / "INDEX.md").read_text(encoding="utf-8")
+        self.assertIn("Do not glob", mengto)
+        self.assertIn("Do not glob", brands)
+        self.assertIn("Do not glob", antv)
+        self.assertGreaterEqual(mengto.count("`"), 127)
+        self.assertGreaterEqual(brands.count("| `"), 74)
+        self.assertIn("creator-full.md", antv)
+        self.assertIn("infographic-syntax-creator/SKILL.md", antv)
+
+    def test_session_start_does_not_leak_law_key(self):
+        env = os.environ.copy()
+        env["LAW_OC"] = "secret-law-key-should-not-appear"
+        payload = json.dumps({"hook_event_name": "SessionStart"})
+        proc = subprocess.run(
+            ["node", str(ROOT / "scripts" / "session_start.mjs")],
+            input=payload,
+            text=True,
+            encoding="utf-8",
+            capture_output=True,
+            check=False,
+            cwd=str(ROOT),
+            env=env,
+        )
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertNotIn("secret-law-key-should-not-appear", proc.stdout)
+        self.assertNotIn("secret-law-key-should-not-appear", proc.stderr)
+        ctx = json.loads(proc.stdout)["hookSpecificOutput"]["additionalContext"]
+        self.assertRegex(ctx, r"korean_law: (ready|missing-build|missing-LAW_OC)")
+
+    def test_setup_korean_law_is_local_only(self):
+        source = (ROOT / "scripts" / "setup_korean_law.mjs").read_text(encoding="utf-8")
+        self.assertIn("npm", source)
+        self.assertIn("--ignore-scripts", source)
+        self.assertIn("Do not fly deploy", source)
+        self.assertNotIn("fly deploy", source.replace("Do not fly deploy", ""))
+        self.assertTrue((ROOT / ".env.example").is_file())
+        example = (ROOT / ".env.example").read_text(encoding="utf-8")
+        self.assertIn("LAW_OC=", example)
+        self.assertNotRegex(example, r"LAW_OC=\S+")
+
+    def test_plugin_version_and_lane_copy(self):
+        data = json.loads((ROOT / "plugin.json").read_text(encoding="utf-8"))
+        self.assertEqual(data["version"], "0.9.5")
+        self.assertIn("lanes", data["interface"]["longDescription"].lower())
+        self.assertTrue((ROOT / "docs" / "GAPS.md").is_file())
+        self.assertTrue((SKILLS / "ui-studio" / "SKILL.md").is_file())
+
+    def test_help_guide_is_routed_without_expanding_picker(self):
+        guide = (ROOT / "docs" / "USER_GUIDE.md").read_text(encoding="utf-8")
+        router = (SKILLS / "lazyforensic" / "SKILL.md").read_text(encoding="utf-8")
+        gemini = (ROOT / "GEMINI.md").read_text(encoding="utf-8")
+        self.assertIn("설명서", guide)
+        self.assertIn("보고서 완성 워크플로", guide)
+        self.assertIn("디자인 검토", guide)
+        self.assertIn("generate_timeline.py --input", guide)
+        self.assertIn("docs/USER_GUIDE.md", router)
+        self.assertIn("docs/USER_GUIDE.md", gemini)
+        self.assertEqual(len(skill_md_files()), VISIBLE_SKILL_CAP)
 
 
 if __name__ == "__main__":

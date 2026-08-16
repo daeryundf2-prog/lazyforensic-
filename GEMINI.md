@@ -54,7 +54,15 @@ ROLE ENVELOPE: mayFinalizeRun=false; mayModifyGlobalRunState=false; mustReturn=S
 
 ## 스킬 라우팅
 
-아래에서 `SKILL.md` 하나만 읽는다.
+한 턴에 **레인 하나**만 고른다. 레인 안에서 `SKILL.md` / `REFERENCE.md` / `INDEX.md`를 **하나만** 읽는다.
+
+### Help
+
+사용자가 `설명서`, `도움말`, `명령어 알려줘`, `무엇을 할 수 있어?`라고 하면 `docs/USER_GUIDE.md`를 읽고 기능별 요청 예시를 보여준다. 도움말 요청만으로 분석이나 파일 생성을 시작하지 않는다.
+
+### Forensic
+
+진입점은 `skills/lazyforensic/SKILL.md`다.
 
 | 요청 | 스킬 |
 | :--- | :--- |
@@ -65,15 +73,24 @@ ROLE ENVELOPE: mayFinalizeRun=false; mayModifyGlobalRunState=false; mustReturn=S
 | CCTV/동영상 프레임 | `skills/forensic-video/SKILL.md` |
 | 구간 자르기/필름스트립 | `skills/video-editor/SKILL.md` |
 | 감정서 문장 교정 | `skills/korean-writing-reviewer/SKILL.md` |
-| 계약 서식, 법령 조회 | `skills/legal-forensic-consult/SKILL.md` |
 | DLP 표 정리 | `skills/dlp-leakage-detector/SKILL.md` |
+
+### Visual
+
+| 요청 | 파일 |
+| :--- | :--- |
 | 인포그래픽 | `skills/infographic-creator/SKILL.md` |
+| AntV 위성 | `vendor/antv-infographic/INDEX.md`에서 **하나** |
+| Manim 참고 | `video-editor`가 지시할 때만 `skills/video-editor/manim-video/REFERENCE.md` |
 
-UI 기능은 기본 스킬이 아니다. 사용자가 명시한 경우에만 다음 참고 파일을 읽는다.
+### Legal
 
-- UI 슬롭: `skills/slopslap/REFERENCE.md`
-- 웹 뷰어: `skills/frontend-ui-ux/REFERENCE.md`, 이후 `mengto-skills/INDEX.md`에서 하나
-- 브랜드 토큰: `skills/design-system/REFERENCE.md`, 이후 `design-systems/INDEX.md`에서 하나
+계약 서식·법령 조회는 `skills/legal-forensic-consult/SKILL.md`.  
+세션 런타임의 `korean_law`가 `ready`일 때만 `korean_law` MCP를 쓴다. `missing-build`면 `node scripts/setup_korean_law.mjs`를 안내하고 조문을 만들지 않는다. `missing-LAW_OC`면 키 설정을 안내하고 조문을 만들지 않는다. 상세 API는 필요할 때만 `korean-law-mcp/docs/API.md` **한 파일**.
+
+### UI
+
+뷰어·슬롭·브랜드 토큰은 `skills/ui-studio/SKILL.md`만 피커에서 고른다. 그 스킬이 가리키는 REFERENCE **하나**, 이어서 INDEX에서 **하나**.
 
 `mengto-skills/**`, `design-systems/**`를 glob 하지 않는다. 선택한 스킬이 지시하지 않으면 `vendor/`를 읽지 않는다.
 전체 도구 형식은 `skills/references/antigravity-tools.md`에 있다.

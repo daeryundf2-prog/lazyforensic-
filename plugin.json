@@ -1,7 +1,7 @@
 {
 	"name": "lazyforensic",
-	"version": "0.9.3",
-	"description": "Antigravity + Gemini 3.7 Flash evidence-drafting helper for JSON timelines, OS-visible file metadata, and Kakao text exports. Not a forensic acquisition or court-admissibility suite.",
+	"version": "0.9.5",
+	"description": "Antigravity + Gemini 3.7 Flash evidence-drafting helper with Korean help prompts for timelines, file metadata, reports, UI, and Kakao text exports. Not a forensic acquisition or court-admissibility suite.",
 	"author": {
 		"name": "daeryundf2-prog",
 		"url": "https://github.com/daeryundf2-prog"
@@ -14,10 +14,10 @@
 	"interface": {
 		"displayName": "LazyForensic",
 		"shortDescription": "Gemini 3.7 Flash DFIR drafting for Antigravity",
-		"longDescription": "LazyForensic is tuned for Google Antigravity + Gemini 3.7 Flash. SessionStart injects GEMINI.md. Skills use invoke_subagent (Model flash/pro/flash_lite), host Read for frames, and fail closed when evidence is missing. Vendor UI catalogs stay out of the default skill picker.",
+		"longDescription": "LazyForensic is tuned for Google Antigravity + Gemini 3.7 Flash. SessionStart injects GEMINI.md. Four lanes (forensic/visual/legal/ui) reach vendor catalogs through INDEX files. The default skill picker stays thin (12 SKILL.md). Skills use invoke_subagent (Model flash/pro/flash_lite) and fail closed when evidence is missing.",
 		"developerName": "daeryundf2-prog",
 		"category": "Evidence Drafting Tools",
-		"capabilities": ["Gemini Host Contract", "JSON Timeline HTML", "OS-visible File Metadata", "Kakao Text Export Parser", "Neutral Report Drafting"],
+		"capabilities": ["Korean Help Guide", "Gemini Host Contract", "JSON Timeline HTML", "OS-visible File Metadata", "Kakao Text Export Parser", "Neutral Report Drafting"],
 		"brandColor": "#1E3A8A"
 	}
 }

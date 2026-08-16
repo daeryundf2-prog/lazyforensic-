@@ -6,8 +6,11 @@ Google Antigravity + **Gemini 3.7 Flash (High)** 용 DFIR **초안 보조** 플�
 
 세션이 뜨면 `hooks.json`이 한국어 `GEMINI.md`를 주입한다. 서브에이전트는 `invoke_subagent`의 `Subagents[].Model` (`flash` / `pro` / `flash_lite`)만 쓴다. `view_file`, `model_tier`, OpenCode `task`는 호스트 API가 아니다.
 
-벤더 카탈로그(`mengto-skills/`, `design-systems/`, `vendor/antv-infographic/`)와 UI 보조 기능(`slopslap`, `frontend-ui-ux`, `design-system`)은 기본 스킬 피커에 올리지 않는다. 사용자가 UI 작업을 명시한 경우에만 `REFERENCE.md`와 `INDEX.md`에서 하나를 고른다.
+기본 스킬 피커는 12개(`SKILL.md`)만 둔다. 벤더 카탈로그는 레인 → INDEX → 파일 하나로 도달한다. `mengto-skills/**`, `design-systems/**`, `vendor/**`를 glob 하지 않는다.
 Node가 없거나 SessionStart 훅이 실패하면 `GEMINI.md`를 직접 읽은 뒤 진행한다.
+
+구현하지 않은 능력은 `docs/GAPS.md`에 있다.
+채팅에 `설명서`, `도움말`, `명령어 알려줘`라고 입력하면 `docs/USER_GUIDE.md`의 기능별 요청 예시를 안내한다.
 
 ---
 
@@ -26,6 +29,17 @@ Node가 없거나 SessionStart 훅이 실패하면 `GEMINI.md`를 직접 읽은 
 | `korean-law-mcp` | 법제처 API 클라이언트 **소스** | 빌드 없이 즉시 기동, 변호사 대체 |
 | `korean-writing-reviewer` | 한국어 문장 검토 | 사실 생성 |
 | `design-systems`, `mengto-skills`, `slopslap` | 벤더 UI 카탈로그 | 포렌식 엔진 |
+
+---
+
+## 레인 사용
+
+한 턴에 레인 하나만 고른다.
+
+- 포렌식 기본(타임라인·해시·카카오 txt·감정서): `skills/lazyforensic/SKILL.md`
+- 인포그래픽: `skills/infographic-creator/SKILL.md` → 필요 시 `vendor/antv-infographic/INDEX.md`에서 하나
+- 뷰어/슬롭/브랜드 토큰: `skills/ui-studio/SKILL.md` → REFERENCE 하나 → INDEX에서 하나
+- 법령 조문: `node scripts/setup_korean_law.mjs` 후 `LAW_OC` 설정, 그다음 `korean_law` MCP. 키가 없으면 조문을 만들지 않는다.
 
 ---
 
@@ -74,6 +88,12 @@ python -m unittest discover -s test -v
 `mcp_config.json`은 실패 폐쇄 래퍼 `scripts/korean_law_mcp.mjs`를 실행한다.
 래퍼는 `korean-law-mcp/build/index.js`와 `LAW_OC`/`KOREAN_LAW_API_KEY`를 모두 확인한다.
 둘 중 하나라도 없으면 명확한 오류로 종료하며 MCP 서버를 시작하지 않는다.
+
+```bash
+node scripts/setup_korean_law.mjs
+```
+
+또는 수동으로:
 
 ```bash
 cd korean-law-mcp

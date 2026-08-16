@@ -22,4 +22,10 @@ description: 위임계약 서식 빈칸·법령/판례 조회 보조. 법률 자
 - 주민등록번호 수집
 - MCP가 빌드되지 않았거나 `LAW_OC`가 없을 때 조문을 지어내기
 
-`korean_law`는 `korean-law-mcp/build/index.js`가 있을 때만 호출한다. 조회 결과는 `invoke_subagent` `Model: "pro"`로 원문과 대조한다.
+세션 런타임의 `korean_law` 상태를 먼저 본다.
+
+- `missing-build`: `node scripts/setup_korean_law.mjs`를 안내하고 조문을 만들지 않는다. 이 레포에서 `fly deploy`를 실행하지 않는다.
+- `missing-LAW_OC`: `.env.example`을 보고 `LAW_OC` 또는 `KOREAN_LAW_API_KEY` 설정을 안내하고 조문을 만들지 않는다.
+- `ready`: `korean_law` MCP로 조회한 뒤 `invoke_subagent` `Model: "pro"`로 원문과 대조한다. 상세 API는 필요할 때만 `korean-law-mcp/docs/API.md` **한 파일**.
+
+키 값을 출력하거나 로그에 남기지 않는다.

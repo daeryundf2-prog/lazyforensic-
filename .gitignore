@@ -1,3 +1,7 @@
+# Secrets
+.env
+.env.local
+
 # Node / Python / OS artifacts
 node_modules/
 __pycache__/
