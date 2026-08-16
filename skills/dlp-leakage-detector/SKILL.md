@@ -1,6 +1,6 @@
 ---
 name: dlp-leakage-detector
-description: DLP/웹/USB 로그를 사람이 교차 정리하는 체크리스트. 자동 수집 스크립트는 없다.
+description: 이미 있는 DLP/웹/USB 로그를 표로 맞출 때. 자동 유출 탐지·없는 로그 창작에는 쓰지 말 것.
 ---
 
 # dlp-leakage-detector: 유출 교차분석 체크리스트

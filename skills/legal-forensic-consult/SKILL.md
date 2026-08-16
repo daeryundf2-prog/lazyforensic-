@@ -1,6 +1,6 @@
 ---
 name: legal-forensic-consult
-description: 위임 계약 서식 초안과 법령/판례 조회 보조. 법률 자문이 아니며 변호사를 대체하지 않는다.
+description: 위임계약 서식 빈칸·법령/판례 조회 보조. 법률 자문·적법/위법 단정·조문 창작에는 쓰지 말 것.
 ---
 
 # legal-forensic-consult: 서식·법령 조회 보조
@@ -21,3 +21,5 @@ description: 위임 계약 서식 초안과 법령/판례 조회 보조. 법률 
 - "최신 판례에 따르면 적법/위법" 단정
 - 주민등록번호 수집
 - MCP가 빌드되지 않았거나 `LAW_OC`가 없을 때 조문을 지어내기
+
+`korean_law`는 `korean-law-mcp/build/index.js`가 있을 때만 호출한다. 조회 결과는 `invoke_subagent` `Model: "pro"`로 원문과 대조한다.

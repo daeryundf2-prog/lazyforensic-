@@ -1,6 +1,6 @@
 ---
 name: kakao-chat-extractor
-description: 카카오톡 모바일/PC 텍스트 내보내기 파일을 파싱한다. SQLite, 백업 DB, chat_logs 테이블은 읽지 않는다.
+description: 카카오톡 모바일/PC 텍스트 내보내기(.txt) 파싱. SQLite·백업 DB·대화방 폴더 탐색에는 쓰지 말 것.
 ---
 
 # kakao-chat-extractor: 카카오톡 텍스트 내보내기 파서
@@ -27,3 +27,7 @@ UTF-8, UTF-8 BOM, UTF-16 LE/BE를 시도한다.
 ```bash
 python skills/kakao-chat-extractor/scripts/parse_kakao.py "카카오톡_대화내용.txt" --keyword "키워드" --output parsed.json
 ```
+
+## Antigravity / Gemini
+
+파서는 `invoke_subagent` `Model: "flash"`. 모바일 시각은 초가 없어 `:00`이다. `view_file`을 만들지 말 것.

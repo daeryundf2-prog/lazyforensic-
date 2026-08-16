@@ -1,6 +1,6 @@
 ---
 name: forensic-timeline
-description: JSON 이벤트 목록을 인터랙티브 HTML 타임라인으로 렌더링한다. $MFT, 이벤트 로그, 메신저를 직접 수집하지 않는다. --input 이 없으면 종료한다.
+description: 이벤트 JSON을 HTML 타임라인으로 그릴 때. --input 필수. $MFT/이벤트로그 수집·샘플 유출 사건 생성에는 쓰지 말 것.
 ---
 
 # forensic-timeline: JSON → HTML 타임라인
@@ -30,3 +30,7 @@ python skills/forensic-timeline/scripts/generate_timeline.py --input events.json
 - HTML 출력은 입력 JSON의 시각화일 뿐이다.
 - XSS 방지를 위해 필드 값을 escape 한다.
 - 법원 제출 적격성, 무결성, 원본 아티팩트 대체 주장을 하지 않는다.
+
+## Antigravity / Gemini
+
+호스트 `Read`/`Write`만 쓴다. 파싱은 `invoke_subagent` `Model: "flash"`, HTML 검증은 `Model: "pro"`. 도구 모양은 `../references/antigravity-tools.md`.

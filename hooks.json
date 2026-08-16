@@ -1,0 +1,31 @@
+{
+	"hooks": {
+		"SessionStart": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "node \"${PLUGIN_ROOT}/scripts/session_start.mjs\"",
+						"timeout": 5,
+						"statusMessage": "LazyForensic: Loading Gemini host contract",
+						"failurePolicy": "FAIL_OPEN"
+					}
+				]
+			}
+		],
+		"PostCompact": [
+			{
+				"matcher": "manual|auto",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "node \"${PLUGIN_ROOT}/scripts/session_start.mjs\"",
+						"timeout": 5,
+						"statusMessage": "LazyForensic: Restoring Gemini host contract",
+						"failurePolicy": "FAIL_OPEN"
+					}
+				]
+			}
+		]
+	}
+}

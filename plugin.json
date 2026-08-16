@@ -1,7 +1,7 @@
 {
 	"name": "lazyforensic",
-	"version": "0.9.1",
-	"description": "Antigravity helper for DFIR drafting: JSON timelines, os.stat hashes, Kakao text-export parsing, and optional bundled UI/law tools. Not a court-admissible forensic suite.",
+	"version": "0.9.2",
+	"description": "Antigravity + Gemini 3.7 Flash DFIR drafting helper. JSON timelines, os.stat hashes, Kakao text-export parsing. Not a court-admissible forensic suite.",
 	"author": {
 		"name": "daeryundf2-prog",
 		"url": "https://github.com/daeryundf2-prog"
@@ -9,14 +9,15 @@
 	"license": "MIT",
 	"keywords": ["antigravity", "antigravity-plugin", "forensic", "dfir", "timeline", "kakao"],
 	"skills": "./skills/",
+	"hooks": "./hooks.json",
 	"mcpServers": "./mcp_config.json",
 	"interface": {
 		"displayName": "LazyForensic",
-		"shortDescription": "DFIR drafting helpers plus optional UI/law add-ons",
-		"longDescription": "LazyForensic drafts timelines from caller-supplied JSON, prints os.stat timestamps and SHA-256, parses KakaoTalk text exports, and hosts optional add-ons (Korean Law MCP source, writing reviewer, video helpers, vendor UI catalogs). It does not parse NTFS $MFT, does not prove timestomping, does not give legal advice, and does not produce court-admissible evidence by itself.",
+		"shortDescription": "Gemini 3.7 Flash DFIR drafting for Antigravity",
+		"longDescription": "LazyForensic is tuned for Google Antigravity + Gemini 3.7 Flash. SessionStart injects GEMINI.md. Skills use invoke_subagent (Model flash/pro/flash_lite), host Read for frames, and fail closed when evidence is missing. Vendor UI catalogs stay out of the default skill picker.",
 		"developerName": "daeryundf2-prog",
 		"category": "Digital Forensics & Legal Tech",
-		"capabilities": ["JSON Timeline HTML", "os.stat Timestamp Hash", "Kakao Text Export Parser", "Report Drafting", "Optional Korean Law MCP", "Optional UI Catalogs"],
+		"capabilities": ["Gemini 3.7 Flash Host Contract", "invoke_subagent Routing", "JSON Timeline HTML", "os.stat Timestamp Hash", "Kakao Text Export Parser", "Report Drafting"],
 		"brandColor": "#1E3A8A"
 	}
 }

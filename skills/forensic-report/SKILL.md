@@ -1,6 +1,6 @@
 ---
 name: forensic-report
-description: 포렌식 보고서 초안을 중립 서식으로 정리한다. 법원 제출 적격이나 의뢰인 주장의 입증을 단정하지 않는다.
+description: 포렌식 감정서/보고서 초안. 측정값만 채운다. 의뢰인 주장 입증·법원 적격 단정에는 쓰지 말 것.
 ---
 
 # forensic-report: 보고서 초안 작성
@@ -22,3 +22,5 @@ description: 포렌식 보고서 초안을 중립 서식으로 정리한다. 법
 - [ ] KST/UTC를 구분할 수 없으면 "미확인"으로 표기
 - [ ] `$MFT`, Timestomping 등 용어는 실제 분석한 경우에만 사용
 - [ ] "명백히 입증", "법원에 유효" 같은 선결론 금지
+
+서식: `templates/forensic_report_template.md`. 초안은 `invoke_subagent` `Model: "flash"`, 선결론 점검은 `Model: "pro"`.

@@ -1,8 +1,12 @@
 # LazyForensic
 
-Google Antigravity용 DFIR **초안 보조** 플러그인.
+Google Antigravity + **Gemini 3.7 Flash (High)** 용 DFIR **초안 보조** 플러그인.
 
 법원 제출 적격 감정 스위트가 아니다. `$MFT` 파서, Timestomping 판정기, 법률 자문 엔진이 아니다.
+
+세션이 뜨면 `hooks.json`이 `GEMINI.md`를 주입한다. 서브에이전트는 `invoke_subagent`의 `Subagents[].Model` (`flash` / `pro` / `flash_lite`)만 쓴다. `view_file`, `model_tier`, OpenCode `task`는 호스트 API가 아니다.
+
+벤더 카탈로그(`mengto-skills/`, `design-systems/`, `vendor/antv-infographic/`)는 스킬 피커에 올리지 않는다. `INDEX.md`에서 하나만 고른 뒤 Read 한다.
 
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: forensic-audit
-description: os.stat() 생성/수정/접근 시각과 MD5/SHA-256 해시를 출력한다. $MFT, $SI vs $FN, Maya, MOV mvhd, Timestomping 판정은 하지 않는다.
+description: 파일 생성/수정/접근 시각과 SHA-256이 필요할 때. os.stat만. $MFT·Timestomping·Maya·MOV 감정에는 쓰지 말 것.
 ---
 
 # forensic-audit: OS 표면 타임스탬프와 해시
@@ -27,3 +27,7 @@ description: os.stat() 생성/수정/접근 시각과 MD5/SHA-256 해시를 출�
 ```bash
 python skills/forensic-audit/scripts/audit_timestamps.py "대상파일.ext"
 ```
+
+## Antigravity / Gemini
+
+스크립트 stdout을 그대로 인용한다. C>M을 조작으로 올리지 않는다. 검증 레인은 `invoke_subagent` `Model: "pro"`.

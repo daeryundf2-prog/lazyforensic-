@@ -1,9 +1,12 @@
 ---
 name: slopslap
-description: 대상 화면(스택 불문)의 AI-slop 을 문답 없이 걷어내는 병렬-점검 파이프라인 스킬. 단일 에이전트가 규칙을 다 들고 한 번에 고치면 규칙이 컨텍스트 용량에 밀려 조용히 누락되므로(실증됨), 이 스킬은 그 대신 5개 영역(대표슬롭 기계제거·레이아웃컨테이너·간격·타이포·색)을 영역별 서브에이전트로 병렬 정적 점검 → findings 리포트 발행 → 의존성 순서로 순차 집행 → 신선한 에이전트로 재점검 → 렌더 1회로 돌린다. 각 에이전트가 자기 영역만 들어 규칙 드롭이 없고, findings 는 파일로 외부화돼 지휘자·집행자 컨텍스트가 얇게 유지된다. 상세 규칙은 references/inspection-areas.md 가 SSOT. 사용자가 "/slopslap", "빠르게 슬롭 걷어줘", "과감히 AI 티 빼줘", "여백·그리드·색 정리", "이 화면 슬롭 점검하고 고쳐" 라고 하거나, 계층 문답 없이 통계적 AI 결함을 기계적으로 걷어내길 원할 때 쓴다.
+description: 웹 UI AI 슬롭 제거(/slopslap). 포렌식 수집·법령·카카오 파싱에는 쓰지 말 것.
 ---
 
 # Slop Quick (병렬-점검 파이프라인)
+
+Antigravity: 영역 A~E는 `invoke_subagent` `Model: "flash"` 다섯 레인. OpenCode `task` / `CLAUDE_PLUGIN_ROOT` 금지.
+스캐너 루트는 `skills/slopslap/`. 예: `node skills/slopslap/scripts/scan-slop-signals.mjs <경로> --json`.
 
 문답 없는 직설·기계적 슬롭 제거. **왜 파이프라인인가**: 한 에이전트가 5규칙을 다 들고 큰 타깃을 한 패스로 고치면, 시끄러운 항목(히어로·여백)이 작업기억을 채우고 **묻힌 규칙(스크롤바 통일·겹겹 컨테이너 벗기기)이 조용히 누락**된다(v4 실증). 이건 규칙을 더 잘 써서 풀 문제가 아니라 **용량 문제**다. 그래서 점검·집행을 **영역별로 쪼개** 각 컨텍스트가 자기 영역만 들게 하고, 상태를 **파일로 외부화**한다.
 
@@ -32,10 +35,10 @@ description: 대상 화면(스택 불문)의 AI-slop 을 문답 없이 걷어내
 
 ### 1. 병렬 정적 점검 (한 메시지에 5개 동시 디스패치)
 영역별 서브에이전트 5개를 **동시에** 띄운다. 각 디스패치 프롬프트(얇게):
-- 대상 경로·스택·토큰 위치, 회차 폴더, **`BOLD=on/off` 플래그**(0단계 확정값 — B·C 집행자는 이 플래그만 보고 스케일업 여부 결정, 재판정 금지), SSOT 경로(`${CLAUDE_PLUGIN_ROOT}/src/data/aiSlopTaxonomyData.js`), 스캐너(`node ${CLAUDE_PLUGIN_ROOT}/scripts/scan-slop-signals.mjs <경로> --json`)
+- 대상 경로·스택·토큰 위치, 회차 폴더, **`BOLD=on/off` 플래그**(0단계 확정값 — B·C 집행자는 이 플래그만 보고 스케일업 여부 결정, 재판정 금지), SSOT 경로(`${PLUGIN_ROOT}/skills/slopslap/src/data/aiSlopTaxonomyData.js`), 스캐너(`node ${PLUGIN_ROOT}/skills/slopslap/scripts/scan-slop-signals.mjs <경로> --json`)
 - **"references/inspection-areas.md 의 영역 <X> 절만 읽고, 그 규칙으로 대상을 정적으로 점검해 `findings-<X>.md` 를 스키마대로 써라."**
 - **정적/계산만** (CSS·DOM 읽기, hex 대비 수학, 그리드 fr·간격 리터럴, 폰트 역할맵, 100vh 콘텐츠 높이 합산). **playwright/브라우저 금지**(싱글턴 충돌 + 점검엔 불필요 - 렌더 없던 시절 방식). read-only.
-- **레퍼런스 조회·삽입(교체형 텔에 한함)**: 각 점검자는 자기가 쓴 finding 이 교체형(간격 사다리·타입 스케일·팔레트 램프·measure·대비)이면 그 finding 의 taxonomy-id 로 `node ${CLAUDE_PLUGIN_ROOT}/scripts/fetch-references.mjs <id> --json` 를 호출해, 반환된 정량 target 을 **그 항목의 처방·검증(check)에 snap 기준값으로 박아 넣는다**(예: "16×1.25^n 사다리로 snap, check=고유 크기 수 ≤ rung 수"). 이렇게 해야 레퍼런스가 리포트 참고가 아니라 **집행이 실제로 적용하는 값**으로 하류에 전달된다. 삭제형 텔은 조회 안 함(차용값 없음). 프로젝트 자체 토큰(config·:root·Figma 변수) 발견 시 그게 최우선, 코퍼스는 폴백.
+- **레퍼런스 조회·삽입(교체형 텔에 한함)**: 각 점검자는 자기가 쓴 finding 이 교체형(간격 사다리·타입 스케일·팔레트 램프·measure·대비)이면 그 finding 의 taxonomy-id 로 `node ${PLUGIN_ROOT}/skills/slopslap/scripts/fetch-references.mjs <id> --json` 를 호출해, 반환된 정량 target 을 **그 항목의 처방·검증(check)에 snap 기준값으로 박아 넣는다**(예: "16×1.25^n 사다리로 snap, check=고유 크기 수 ≤ rung 수"). 이렇게 해야 레퍼런스가 리포트 참고가 아니라 **집행이 실제로 적용하는 값**으로 하류에 전달된다. 삭제형 텔은 조회 안 함(차용값 없음). 프로젝트 자체 토큰(config·:root·Figma 변수) 발견 시 그게 최우선, 코퍼스는 폴백.
 - findings 는 영역별 **별도 파일** → 병렬 쓰기 안전.
 
 ### 2. 리포트 발행 (HTML + 로컬 링크)
@@ -44,7 +47,7 @@ description: 대상 화면(스택 불문)의 AI-slop 을 문답 없이 걷어내
 - 리포트 구성(정적 HTML, 자기완결·인라인 CSS·외부요청 0): 상단에 대상·회차·영역별 항목 수 요약 표(A/B/C/D/E n건, waive n건). 그 아래 영역별 섹션 - 각 finding 을 카드로(id · 문제 · 근거 · 처방 · 집행순서), 집행 후면 반영/누락 배지. 값(base·배수·대비비)은 그대로 노출.
 - 지휘자는 findings 를 통째로 들지 말고 각 `findings-<X>.md` 를 **그대로 읽어 HTML 로 렌더**만(요약 판단 최소화). 사용자가 특정 항목을 waive 하면 그 카드에 "waive" 태깅.
 - 이 리포트는 **집행 후에도 갱신**(4단계 verify 결과의 반영/누락을 각 카드에 반영)해 같은 링크에서 최종 상태를 본다.
-- **레퍼런스 자동 조인**: 리포트 빌더가 각 finding 의 taxonomy-id 를 `${CLAUDE_PLUGIN_ROOT}/src/data/referenceData.js` 코퍼스에 결정적으로 조인해(가장 긴 prefix + alias) 카드에 정량 레퍼런스 블록(원칙·정량 타깃·출처·실앱 딥링크)을 붙인다. 무키·무료·오프라인(Tailwind/Radix/WCAG vendoring). 삭제형 텔(오버라인 제거 등)은 "차용값 없음" 으로만 표기. 단독 조회는 `node ${CLAUDE_PLUGIN_ROOT}/scripts/fetch-references.mjs <id> --json`.
+- **레퍼런스 자동 조인**: 리포트 빌더가 각 finding 의 taxonomy-id 를 `${PLUGIN_ROOT}/skills/slopslap/src/data/referenceData.js` 코퍼스에 결정적으로 조인해(가장 긴 prefix + alias) 카드에 정량 레퍼런스 블록(원칙·정량 타깃·출처·실앱 딥링크)을 붙인다. 무키·무료·오프라인(Tailwind/Radix/WCAG vendoring). 삭제형 텔(오버라인 제거 등)은 "차용값 없음" 으로만 표기. 단독 조회는 `node ${PLUGIN_ROOT}/skills/slopslap/scripts/fetch-references.mjs <id> --json`.
 
 ### 3. 순차 집행 (1→5, 커밋 단위 — check 실측 기반)
 영역 순서(A→B→C→D→E)대로 **한 번에 한 영역 집행자**를 디스패치. 각 집행자 프롬프트:
@@ -76,7 +79,7 @@ description: 대상 화면(스택 불문)의 AI-slop 을 문답 없이 걷어내
 
 기본은 **reductive**(위 파이프라인, 삭제>축소>교체). 사용자가 "과감히 바꿔줘"·"transform"·"재설계급으로" 를 원하면 **transform 모드**로 전환한다. 차이는 집행 기준이 대상 자체 도출값이 아니라 **실측 레퍼런스 매트릭스의 방향 조합**이라는 것.
 
-- **매트릭스 소스**: `${CLAUDE_PLUGIN_ROOT}/src/data/referenceMatrix/` — 실제 우수 사이트(Linear·Stripe·Apple·Basecamp 등)를 헤드리스 렌더해 뽑은 실측 contract(팔레트·타입스케일·간격·measure·폰트역할), styleTag 로 태깅. 손 타이핑 아님. 조회: `node ${CLAUDE_PLUGIN_ROOT}/scripts/fetch-answer.mjs <tell> [--style <styleTag>] --json`, 스타일 목록 `--styles`, 방향 한 벌 `--direction <styleTag>`.
+- **매트릭스 소스**: `${PLUGIN_ROOT}/skills/slopslap/src/data/referenceMatrix/` — 실제 우수 사이트(Linear·Stripe·Apple·Basecamp 등)를 헤드리스 렌더해 뽑은 실측 contract(팔레트·타입스케일·간격·measure·폰트역할), styleTag 로 태깅. 손 타이핑 아님. 조회: `node ${PLUGIN_ROOT}/skills/slopslap/scripts/fetch-answer.mjs <tell> [--style <styleTag>] --json`, 스타일 목록 `--styles`, 방향 한 벌 `--direction <styleTag>`.
 - **0.5단계 방향 확정(상류 단일 판단)**: 점검 후, 대상의 콘텐츠·컨셉(무슨 제품인가)·BOLD 플래그에서 **styleTag 방향 1개를 도출**한다(회피가 아니라 콘텐츠-양성 근거로 — 택소노미 계약). `--direction <styleTag>` 로 그 방향의 전 영역 contract 한 벌을 받아 하류 집행자 전원에게 **같은 방향**으로 배포. 이게 파편 수정이 아닌 일관 전환의 핵심.
 - **집행**: 각 영역 집행자는 그 방향 contract 의 자기 슬라이스를 snap 기준으로: 간격→spacingLadder(노이즈 클린 후), 타입→typeScale+ratio, 색→palette(무지개 제거·중립 램프+accent), 폰트→fontRoles, 폭→measure. **원시 스케일은 근접값 클린 후 모듈러 사다리로 도출**해 적용.
 - **불가침 유지**: 재설계라도 카피·정보·순서·이미지 콘텐츠는 보존(transform ≠ 콘텐츠 변경). em-dash·존댓말 등 카피 결함은 범위 밖.
