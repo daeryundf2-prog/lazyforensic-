@@ -2,7 +2,9 @@
 # -*- coding: utf-8 -*-
 """
 whisper.py
-Speech-to-Text transcription via Groq, OpenAI, or local Whisper fallback.
+Speech-to-Text transcription via Groq or OpenAI.
+
+Audio upload is disabled unless the caller passes allow_upload=True.
 """
 from __future__ import annotations
 
@@ -45,7 +47,19 @@ def extract_audio(video_path: str, out_audio: Path) -> Path:
     return out_audio
 
 
-def transcribe_video(video_path: str, out_dir: Path, backend: str | None = None) -> list[dict]:
+def transcribe_video(
+    video_path: str,
+    out_dir: Path,
+    backend: str | None = None,
+    allow_upload: bool = False,
+) -> list[dict]:
+    if not allow_upload:
+        print(
+            "[forensic-video] external transcription disabled; audio was not uploaded",
+            file=sys.stderr,
+        )
+        return []
+
     key, provider = load_api_key(backend)
     if not key:
         return []

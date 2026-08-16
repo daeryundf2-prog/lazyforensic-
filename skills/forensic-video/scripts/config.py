@@ -17,7 +17,6 @@ DETAIL_CAPS = {
     "transcript": 0,
     "efficient": 50,
     "balanced": 100,
-    "token-burner": None,
 }
 
 CONFIG_PATHS = [

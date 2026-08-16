@@ -22,6 +22,8 @@ def load_module(name, relpath):
 timeline = load_module("generate_timeline", "skills/forensic-timeline/scripts/generate_timeline.py")
 audit = load_module("audit_timestamps", "skills/forensic-audit/scripts/audit_timestamps.py")
 kakao = load_module("parse_kakao", "skills/kakao-chat-extractor/scripts/parse_kakao.py")
+video_config = load_module("forensic_video_config", "skills/forensic-video/scripts/config.py")
+video_whisper = load_module("forensic_video_whisper", "skills/forensic-video/scripts/whisper.py")
 
 
 class TimelineTests(unittest.TestCase):
@@ -167,6 +169,31 @@ class KakaoTests(unittest.TestCase):
             # then
             self.assertEqual(len(msgs), 1)
             self.assertEqual(msgs[0]["sender"], "홍길동")
+
+
+class ForensicVideoTests(unittest.TestCase):
+    def test_external_transcription_is_opt_in(self):
+        # given an API key appears to be configured
+        original_load_key = video_whisper.load_api_key
+        original_extract = video_whisper.extract_audio
+        calls = []
+        try:
+            video_whisper.load_api_key = lambda _backend=None: ("secret", "groq")
+            video_whisper.extract_audio = lambda *_args: calls.append("extract")
+            # when upload consent is absent
+            result = video_whisper.transcribe_video("evidence.mp4", Path("."), backend="groq")
+        finally:
+            video_whisper.load_api_key = original_load_key
+            video_whisper.extract_audio = original_extract
+
+        # then the evidence audio is not extracted or uploaded
+        self.assertEqual(result, [])
+        self.assertEqual(calls, [])
+
+    def test_video_frame_profiles_are_bounded(self):
+        self.assertEqual(video_config.frame_cap("efficient"), 50)
+        self.assertEqual(video_config.frame_cap("balanced"), 100)
+        self.assertNotIn("token-burner", video_config.DETAIL_CAPS)
 
 
 class ClaimHonestyTests(unittest.TestCase):

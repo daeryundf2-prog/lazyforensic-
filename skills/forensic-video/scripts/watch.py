@@ -50,9 +50,9 @@ def main() -> int:
     ap.add_argument("--fps", type=float, default=None, help="Override auto-fps")
     ap.add_argument(
         "--detail",
-        choices=["transcript", "efficient", "balanced", "token-burner"],
+        choices=["transcript", "efficient", "balanced"],
         default=None,
-        help="Fidelity dial: transcript (0 frames), efficient (cap 50), balanced (cap 100), token-burner (uncapped).",
+        help="Fidelity dial: transcript (0 frames), efficient (cap 50), balanced (cap 100).",
     )
     ap.add_argument(
         "--timestamps",
@@ -63,14 +63,29 @@ def main() -> int:
     ap.add_argument("--start", type=str, default=None, help="Range start (SS, MM:SS, or HH:MM:SS)")
     ap.add_argument("--end", type=str, default=None, help="Range end (SS, MM:SS, or HH:MM:SS)")
     ap.add_argument("--out-dir", type=str, default=None, help="Output directory for frames")
-    ap.add_argument("--no-whisper", action="store_true", help="Disable Whisper fallback")
-    ap.add_argument("--whisper", choices=["groq", "openai"], default=None, help="Specific Whisper provider")
+    ap.add_argument(
+        "--upload-audio",
+        action="store_true",
+        help="Explicitly consent to upload extracted audio to the selected transcription provider.",
+    )
+    ap.add_argument(
+        "--whisper",
+        choices=["groq", "openai"],
+        default=None,
+        help="External transcription provider; requires --upload-audio.",
+    )
     ap.add_argument("--json", action="store_true", help="Output JSON structure instead of Markdown")
     args = ap.parse_args()
 
     config = get_config()
     detail = args.detail or str(config["detail"])
     max_frames = args.max_frames if args.max_frames is not None else frame_cap(detail)
+    if max_frames is not None and (max_frames < 0 or max_frames > 100):
+        print("[-] --max-frames must be between 0 and 100", file=sys.stderr)
+        return 2
+    if args.whisper and not args.upload_audio:
+        print("[-] --whisper requires explicit --upload-audio consent", file=sys.stderr)
+        return 2
     cue_timestamps = parse_timestamps(args.timestamps)
     start_sec = parse_time(args.start)
     end_sec = parse_time(args.end)
@@ -89,6 +104,10 @@ def main() -> int:
     video_path: str | None = None
 
     if url_source:
+        print(
+            "[forensic-video] URL download is convenience acquisition, not forensic imaging or chain of custody.",
+            file=sys.stderr,
+        )
         print("[forensic-video] URL detected. Checking metadata/captions...", file=sys.stderr)
         dl = fetch_captions(args.source, work / "download")
         if dl.get("subtitle_path"):
@@ -105,10 +124,18 @@ def main() -> int:
         video_path = local_info["video_path"]
         dl["info"] = local_info["info"]
 
-    # Whisper fallback if no native captions found
-    if not transcript_segments and video_path and not args.no_whisper:
-        print("[forensic-video] Transcribing audio with Whisper...", file=sys.stderr)
-        transcript_segments = transcribe_video(video_path, work, backend=args.whisper)
+    # External transcription is opt-in because it uploads extracted evidence audio.
+    if not transcript_segments and video_path and args.upload_audio:
+        print(
+            f"[forensic-video] Uploading extracted audio to {args.whisper or 'configured provider'}...",
+            file=sys.stderr,
+        )
+        transcript_segments = transcribe_video(
+            video_path,
+            work,
+            backend=args.whisper,
+            allow_upload=True,
+        )
 
     if transcript_segments:
         transcript_segments = filter_range(transcript_segments, start=start_sec, end=end_sec)
