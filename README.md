@@ -55,6 +55,20 @@ python -m unittest discover -s test -v
 
 ---
 
+## 실행 환경
+
+| 기능 | 필수 | 선택 |
+| :--- | :--- | :--- |
+| 타임라인·해시·카카오 txt | Python 3.10+ 표준 라이브러리 | 없음 |
+| 영상 프레임·메타데이터 | Python 3.10+, `ffmpeg`, `ffprobe` | URL 다운로드용 `yt-dlp` |
+| 영상 필름스트립 | 위 항목 + `numpy`, `Pillow` | 외부 전사용 `requests` |
+| Korean Law MCP | Node.js 20.19+, `npm install --ignore-scripts`, `npm run build` | 없음 |
+| SessionStart 계약 주입 | Node.js 20+ | 실패 시 `GEMINI.md` 직접 Read |
+
+외부 전사는 기본 비활성화다. `--upload-audio`를 명시하면 추출 오디오가 Groq 또는 OpenAI로 전송되므로 의뢰인 동의와 반출 승인을 먼저 확인한다.
+
+---
+
 ## Korean Law MCP
 
 `mcp_config.json`은 실패 폐쇄 래퍼 `scripts/korean_law_mcp.mjs`를 실행한다.
@@ -76,14 +90,15 @@ npm run build
 
 ## Third-party trees
 
-루트 라이선스는 MIT다. 아래 트리는 각자 고지/저작권을 따른다.
+루트 라이선스는 원본 LazyForensic 파일에 적용된다. 벤더 트리는 각자 고지/저작권을 따르며 상세 위험은 `NOTICE`에 기록한다.
 
 | 경로 | 출처 | 비고 |
 | :--- | :--- | :--- |
 | `korean-law-mcp/` | chrisryugj/korean-law-mcp (MIT, Copyright Chris) | 원 고지 유지 |
-| `skills/slopslap/` | vibedesignlab/slopslap | 원 라이선스 확인 필요 |
-| `design-systems/` | VoltAgent 브랜드 DESIGN.md 카탈로그 | 브랜드 상표/디자인 자산. 상업 재배포 전 검토 |
-| `mengto-skills/` | Meng To / DesignCode 스킬·데모 | 저작권·이미지 재배포 위험 |
+| `skills/slopslap/` | vibedesignlab/slopslap | 라이선스 파일 없음. 별도 권리 확인 필요 |
+| `design-systems/` | VoltAgent 브랜드 DESIGN.md 카탈로그 | 상표·브랜드 디자인 권리 별도 검토 |
+| `mengto-skills/` | Meng To / DesignCode 스킬·데모 | 라이선스 파일 없음. 별도 권리 확인 필요 |
+| `vendor/antv-infographic/` | AntV Infographic 생태계 참고 자료 | JS 번들 권리는 별도 검토 |
 
 이 트리들을 포렌식 증거 도구로 광고하지 않는다. 삭제 여부는 별도 결정.
 

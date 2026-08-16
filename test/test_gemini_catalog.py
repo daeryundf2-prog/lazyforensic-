@@ -150,6 +150,17 @@ class GeminiCatalogTests(unittest.TestCase):
         self.assertIn("disabled", proc.stderr)
         self.assertIn("LAW_OC", proc.stderr)
 
+    def test_distribution_marks_unverified_vendor_rights(self):
+        notice = (ROOT / "NOTICE").read_text(encoding="utf-8")
+        self.assertIn("korean-law-mcp/LICENSE", notice)
+        self.assertIn("No license file is present", notice)
+        self.assertIn("trademark", notice)
+
+        ignored = (ROOT / ".gitignore").read_text(encoding="utf-8")
+        self.assertIn("timeline_report.html", ignored)
+        self.assertIn("infographic_preview.html", ignored)
+        self.assertIn("korean-law-mcp/build/", ignored)
+
 
 if __name__ == "__main__":
     unittest.main()

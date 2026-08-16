@@ -18,3 +18,9 @@ desktop.ini
 *.tmp
 *.log
 scratch/
+timeline_report.html
+infographic_preview.html
+timeline_strip.png
+
+# Generated dependencies / build output
+korean-law-mcp/build/
