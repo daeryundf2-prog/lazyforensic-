@@ -18,7 +18,8 @@ from datetime import datetime, timezone
 
 LIMITATIONS = (
     "os.stat() 표면값만 읽는다. $MFT $SI/$FN, Timestomping, "
-    "미디어/Maya/Office 내부 메타데이터는 검사하지 않는다."
+    "미디어/Maya/Office 내부 메타데이터는 검사하지 않는다. "
+    "st_ctime은 Windows에서는 대체로 파일 생성시각이지만 POSIX에서는 inode 메타데이터 변경시각이다."
 )
 
 
@@ -38,14 +39,19 @@ def compute_hashes(filepath):
     return md5.hexdigest(), sha256.hexdigest()
 
 
-def audit_file(filepath, tz=None):
+def audit_file(filepath, tz=None, platform_name=None):
     if tz is None:
         tz = datetime.now().astimezone().tzinfo or timezone.utc
+    if platform_name is None:
+        platform_name = os.name
     if not os.path.exists(filepath):
         return None
 
     stat = os.stat(filepath)
     c_time = getattr(stat, "st_ctime", None)
+    birth_time = getattr(stat, "st_birthtime", None)
+    if platform_name == "nt" and birth_time is None:
+        birth_time = c_time
     m_time = getattr(stat, "st_mtime", None)
     a_time = getattr(stat, "st_atime", None)
 
@@ -55,10 +61,12 @@ def audit_file(filepath, tz=None):
         md5_hash, sha256_hash = f"Error: {exc}", f"Error: {exc}"
 
     inverted = False
-    inversion_note = "생성시간 <= 수정시간 (os.stat 기준)"
-    if c_time is not None and m_time is not None and c_time > m_time:
+    inversion_note = "생성시각을 확인할 수 없어 생성>수정 비교를 수행하지 않음"
+    if birth_time is not None and m_time is not None and birth_time <= m_time:
+        inversion_note = "생성시각 <= 수정시각 (os.stat 표면값 기준)"
+    elif birth_time is not None and m_time is not None and birth_time > m_time:
         inverted = True
-        diff_sec = c_time - m_time
+        diff_sec = birth_time - m_time
         inversion_note = (
             f"생성시간 > 수정시간 (차이 약 {int(diff_sec // 60)}분). "
             "Windows에서 복사/다운로드 시 흔히 나타난다. "
@@ -70,7 +78,12 @@ def audit_file(filepath, tz=None):
         "file_path": os.path.abspath(filepath),
         "file_name": os.path.basename(filepath),
         "size_bytes": stat.st_size,
-        "created_time": format_ts(c_time, tz),
+        "created_time": format_ts(birth_time, tz),
+        "ctime_time": format_ts(c_time, tz),
+        "ctime_semantics": (
+            "Windows creation time" if platform_name == "nt"
+            else "POSIX inode metadata change time; not file creation"
+        ),
         "modified_time": format_ts(m_time, tz),
         "accessed_time": format_ts(a_time, tz),
         "timezone": str(tz),
@@ -91,7 +104,8 @@ def print_audit_report(res):
     print(f"  파일 크기    : {res['size_bytes']:,} Bytes")
     print(f"  표시 타임존  : {res['timezone']}")
     print("-" * 70)
-    print(f"  생성 일시(C) : {res['created_time']}")
+    print(f"  생성 일시     : {res['created_time']}")
+    print(f"  OS ctime      : {res['ctime_time']} ({res['ctime_semantics']})")
     print(f"  수정 일시(M) : {res['modified_time']}")
     print(f"  접근 일시(A) : {res['accessed_time']}")
     print("-" * 70)

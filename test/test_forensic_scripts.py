@@ -77,6 +77,20 @@ class TimelineTests(unittest.TestCase):
             self.assertEqual(code, 2)
             self.assertFalse(out.exists())
 
+    def test_iso_events_are_sorted_and_critical_label_is_neutral(self):
+        # given reverse-ordered ISO events
+        events = [
+            {"timestamp": "2024-01-16 15:00:00", "category": "critical", "description": "later"},
+            {"timestamp": "2024-01-16 14:00:00", "category": "system", "description": "earlier"},
+        ]
+        # when
+        html = timeline.generate_html(events)
+        # then
+        self.assertLess(html.index("earlier"), html.index("later"))
+        self.assertIn("시각 오름차순", html)
+        self.assertIn(">주의<", html)
+        self.assertNotIn("유출의심", html)
+
     def test_source_has_no_sample_usb_story(self):
         # given generator source
         src = (ROOT / "skills/forensic-timeline/scripts/generate_timeline.py").read_text(encoding="utf-8")
@@ -96,12 +110,13 @@ class AuditTests(unittest.TestCase):
         # given this test file
         target = Path(__file__)
         # when
-        res = audit.audit_file(str(target), tz=timezone.utc)
+        res = audit.audit_file(str(target), tz=timezone.utc, platform_name="nt")
         # then
         self.assertIsNotNone(res)
         self.assertIn("os.stat()", res["limitations"])
         self.assertIn("$MFT", res["limitations"])
         self.assertIn("+0000", res["created_time"])
+        self.assertIn("Windows creation time", res["ctime_semantics"])
         self.assertEqual(len(res["sha256"]), 64)
         self.assertIn("md5_legacy", res)
         self.assertNotIn("is_inverted", res)
@@ -124,7 +139,7 @@ class AuditTests(unittest.TestCase):
             audit.os.path.exists = lambda _p: True
             audit.os.stat = lambda _p: FakeStat()
             audit.compute_hashes = lambda _p: ("d" * 32, "a" * 64)
-            res = audit.audit_file("fake.bin", tz=timezone.utc)
+            res = audit.audit_file("fake.bin", tz=timezone.utc, platform_name="nt")
         finally:
             audit.os.path.exists = original_exists
             audit.os.stat = original_stat
@@ -135,6 +150,30 @@ class AuditTests(unittest.TestCase):
         self.assertIn("복사/다운로드", res["analysis_note"])
         self.assertNotIn("역전 발견", res["analysis_note"])
         self.assertNotIn("조작 가능성", res["analysis_note"])
+
+    def test_posix_ctime_is_not_reported_as_creation(self):
+        class FakeStat:
+            st_ctime = 2
+            st_mtime = 1
+            st_atime = 2
+            st_size = 1
+
+        original_exists = audit.os.path.exists
+        original_stat = audit.os.stat
+        original_hashes = audit.compute_hashes
+        try:
+            audit.os.path.exists = lambda _p: True
+            audit.os.stat = lambda _p: FakeStat()
+            audit.compute_hashes = lambda _p: ("d" * 32, "a" * 64)
+            res = audit.audit_file("fake.bin", tz=timezone.utc, platform_name="posix")
+        finally:
+            audit.os.path.exists = original_exists
+            audit.os.stat = original_stat
+            audit.compute_hashes = original_hashes
+
+        self.assertEqual(res["created_time"], "N/A")
+        self.assertFalse(res["created_gt_modified"])
+        self.assertIn("not file creation", res["ctime_semantics"])
 
 
 class KakaoTests(unittest.TestCase):
@@ -170,6 +209,17 @@ class KakaoTests(unittest.TestCase):
             self.assertEqual(len(msgs), 1)
             self.assertEqual(msgs[0]["sender"], "홍길동")
 
+    def test_mobile_without_date_header_has_unknown_timestamp(self):
+        msgs = kakao.parse_kakao_text("[홍길동] [오후 2:15] 날짜 없음")
+        self.assertEqual(len(msgs), 1)
+        self.assertIsNone(msgs[0]["timestamp"])
+        self.assertTrue(msgs[0]["timestamp_unknown"])
+
+    def test_pc_sender_may_contain_colon(self):
+        msgs = kakao.parse_kakao_text("[2024-01-16 14:15:22] 팀:홍길동: 안녕하세요.")
+        self.assertEqual(len(msgs), 1)
+        self.assertEqual(msgs[0]["sender"], "팀:홍길동")
+
 
 class ForensicVideoTests(unittest.TestCase):
     def test_external_transcription_is_opt_in(self):
@@ -200,7 +250,7 @@ class ClaimHonestyTests(unittest.TestCase):
     def test_plugin_does_not_claim_court_admissible(self):
         data = json.loads((ROOT / "plugin.json").read_text(encoding="utf-8"))
         blob = json.dumps(data, ensure_ascii=False).lower()
-        self.assertIn("not a court-admissible", blob)
+        self.assertIn("not a forensic acquisition or court-admissibility suite", blob)
         caps = " ".join(data["interface"]["capabilities"]).lower()
         self.assertNotIn("court-admissible", caps)
 

@@ -6,6 +6,7 @@ description: 동영상 구간 자르기·필름스트립/파형. 원본은 수�
 # video-editor
 
 원본은 그대로 두고 `_extracted` / `_enhanced` 사본만 만든다.
+그레이딩·오버레이·자막 적용 구간은 재인코딩된다. 중간 산출물 결합의 stream copy를 전체 파이프라인의 무손실 처리로 표현하지 않는다.
 
 ```bash
 python skills/video-editor/helpers/timeline_view.py "<동영상경로>" <시작초> <종료초> -o timeline_strip.png --n-frames 12

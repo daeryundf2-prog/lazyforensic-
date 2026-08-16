@@ -221,6 +221,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       <div class="meta-item"><div class="meta-label">생성 일시</div><div class="meta-val">{analyzed_at}</div></div>
       <div class="meta-item"><div class="meta-label">총 이벤트 건수</div><div class="meta-val">{total_events} 건</div></div>
       <div class="meta-item"><div class="meta-label">타임존</div><div class="meta-val">{timezone}</div></div>
+      <div class="meta-item"><div class="meta-label">정렬</div><div class="meta-val">{ordering}</div></div>
     </div>
   </header>
 
@@ -230,7 +231,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     </div>
     <div class="filter-btns">
       <button class="btn active" onclick="setCategory('all', this)">전체</button>
-      <button class="btn" onclick="setCategory('critical', this)">🚨 유출/의심</button>
+      <button class="btn" onclick="setCategory('critical', this)">주의</button>
       <button class="btn" onclick="setCategory('file', this)">📁 파일 행위</button>
       <button class="btn" onclick="setCategory('web', this)">🌐 웹/검색</button>
       <button class="btn" onclick="setCategory('chat', this)">💬 메신저/대화</button>
@@ -295,6 +296,26 @@ def load_events(path):
     return events
 
 
+def order_events(events):
+    parsed = []
+    awareness = None
+    for ev in events:
+        raw = ev.get("timestamp")
+        if not isinstance(raw, str) or not raw.strip():
+            return list(events), "입력 순서 (시각 누락/형식 불명)"
+        try:
+            value = datetime.fromisoformat(raw.strip().replace("Z", "+00:00"))
+        except ValueError:
+            return list(events), "입력 순서 (시각 형식 불명)"
+        current_awareness = value.tzinfo is not None
+        if awareness is None:
+            awareness = current_awareness
+        elif awareness != current_awareness:
+            return list(events), "입력 순서 (타임존 표기 혼합)"
+        parsed.append((value, ev))
+    return [ev for _, ev in sorted(parsed, key=lambda item: item[0])], "시각 오름차순"
+
+
 def generate_html(
     events,
     title="디지털포렌식 시계열 타임라인",
@@ -302,15 +323,16 @@ def generate_html(
     timezone_label="as provided (not converted)",
 ):
     items_html = []
+    ordered_events, ordering = order_events(events)
     category_map = {
-        "critical": ("tag-critical", "badge-critical", "유출의심"),
+        "critical": ("tag-critical", "badge-critical", "주의"),
         "file": ("tag-file", "badge-file", "파일행위"),
         "web": ("tag-web", "badge-web", "웹/검색"),
         "chat": ("tag-chat", "badge-chat", "메신저"),
         "system": ("tag-system", "badge-system", "시스템"),
     }
 
-    for ev in events:
+    for ev in ordered_events:
         cat = str(ev.get("category", "file")).lower()
         if cat not in category_map:
             cat = "file"
@@ -342,6 +364,7 @@ def generate_html(
         target=escape_text(target),
         analyzed_at=escape_text(now_str),
         timezone=escape_text(timezone_label),
+        ordering=escape_text(ordering),
         total_events=len(events),
         timeline_items="\n".join(items_html),
     )

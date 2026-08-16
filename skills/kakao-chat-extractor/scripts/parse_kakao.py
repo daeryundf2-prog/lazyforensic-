@@ -16,7 +16,7 @@ import sys
 
 DATE_HEADER_REGEX = re.compile(r"^-+\s*(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일.*-+$")
 MOBILE_MSG_REGEX = re.compile(r"^\[(.+?)\]\s*\[(오전|오후)\s*(\d{1,2}):(\d{2})\]\s*(.*)$")
-PC_MSG_REGEX = re.compile(r"^\[(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})\]\s*([^:]+?)\s*:\s*(.*)$")
+PC_MSG_REGEX = re.compile(r"^\[(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})\]\s*(.+)\s*:\s+(.*)$")
 
 
 def read_kakao_text(filepath):
@@ -34,7 +34,7 @@ def read_kakao_text(filepath):
 
 def parse_kakao_text(text):
     messages = []
-    current_date = "1970-01-01"
+    current_date = None
 
     for line in text.splitlines():
         line_str = line.strip()
@@ -55,9 +55,14 @@ def parse_kakao_text(text):
                 h += 12
             elif ampm == "오전" and h == 12:
                 h = 0
-            ts = f"{current_date} {h:02d}:{int(minute):02d}:00"
+            ts = (
+                f"{current_date} {h:02d}:{int(minute):02d}:00"
+                if current_date is not None
+                else None
+            )
             messages.append({
                 "timestamp": ts,
+                "timestamp_unknown": current_date is None,
                 "sender": user,
                 "message": content,
                 "has_attachment": ("사진" in content or "동영상" in content or "파일:" in content),
@@ -70,6 +75,7 @@ def parse_kakao_text(text):
             ts, user, content = pc_match.groups()
             messages.append({
                 "timestamp": ts,
+                "timestamp_unknown": False,
                 "sender": user,
                 "message": content,
                 "has_attachment": ("파일 전송" in content or "사진" in content or "동영상" in content),
