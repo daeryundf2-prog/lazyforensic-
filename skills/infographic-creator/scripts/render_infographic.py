@@ -8,9 +8,11 @@ Supports legal/forensic themes, responsive containers, and SVG export.
 from __future__ import annotations
 
 import argparse
+import html
 import json
 import sys
 from pathlib import Path
+from urllib.parse import urlparse
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -21,7 +23,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{title}</title>
-<script src="https://cdn.jsdelivr.net/npm/@antv/infographic@latest/dist/infographic.min.js"></script>
+<script src="{script_src}"></script>
 <style>
   :root {{
     --bg-main: #f8fafc;
@@ -97,7 +99,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 </div>
 
 <script>
-const dslContent = `{dsl_escaped}`;
+const dslContent = {dsl_escaped};
 
 try {{
   const infographic = new AntVInfographic.Infographic({{
@@ -117,55 +119,75 @@ try {{
 """
 
 
-def render_infographic_html(dsl_text: str, output_path: str, title: str = "디지털포렌식 시각화 인포그래픽") -> str:
-    dsl_escaped = dsl_text.replace("\\", "\\\\").replace("`", "\\`").replace("${", "\\${")
+def validate_script_source(source: str) -> str:
+    candidate = Path(source)
+    if candidate.is_file():
+        return candidate.resolve().as_uri()
+    parsed = urlparse(source)
+    if parsed.scheme == "https" and parsed.netloc:
+        return source
+    raise ValueError("--antv-script must be an existing local file or an explicit HTTPS URL")
+
+
+def render_infographic_html(
+    dsl_text: str,
+    output_path: str,
+    script_source: str,
+    title: str = "디지털포렌식 시각화 인포그래픽",
+) -> str:
+    dsl_escaped = (
+        json.dumps(dsl_text, ensure_ascii=False)
+        .replace("<", "\\u003c")
+        .replace(">", "\\u003e")
+        .replace("&", "\\u0026")
+    )
     html = HTML_TEMPLATE.format(
-        title=title,
-        dsl_escaped=dsl_escaped
+        title=html.escape(title, quote=True),
+        script_src=html.escape(validate_script_source(script_source), quote=True),
+        dsl_escaped=dsl_escaped,
     )
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(html)
     return output_path
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(description="AntV Infographic Standalone HTML Renderer")
-    parser.add_argument("input", nargs="?", help="Input .infographic file or text")
+    parser.add_argument("input", nargs="?", help="Input .infographic file")
     parser.add_argument("--output", default="infographic_preview.html", help="Output HTML file path")
     parser.add_argument("--title", default="포렌식 분석 인포그래픽", help="Infographic title")
-    args = parser.parse_args()
+    parser.add_argument(
+        "--antv-script",
+        help="Existing local AntV bundle or explicit version-pinned HTTPS URL.",
+    )
+    args = parser.parse_args(argv)
 
-    if args.input and Path(args.input).exists():
-        with open(args.input, "r", encoding="utf-8") as f:
-            dsl = f.read()
-    elif args.input:
-        dsl = args.input
-    else:
-        # Sample forensic process infographic
-        dsl = """infographic list-row-horizontal-icon-arrow
-data
-  title 디지털포렌식 정규 감정 절차
-  desc 법무법인(유한) 대륜 디지털포렌식센터
-  lists
-    - label 1. 증거 획득
-      desc 쓰기방지 장치 연결 및 E01/L01 포렌식 이미징
-      icon shield
-    - label 2. 무결성 검증
-      desc 원본/사본 SHA-256 해시 대조 및 CoC 확보
-      icon check-circle
-    - label 3. 정밀 분석
-      desc 타임스탬프, 타임라인, 아티팩트 복구
-      icon search
-    - label 4. 감정서 발행
-      desc 법원 제출용 정식 포렌식 감정의견서 작성
-      icon file-text
-theme
-  palette #1e3a8a #3b82f6 #10b981 #6366f1
-"""
+    if not args.input:
+        print("[-] input .infographic file is required; refusing to emit sample evidence", file=sys.stderr)
+        return 2
+    if not args.antv_script:
+        print("[-] --antv-script is required; use a reviewed local bundle or pinned HTTPS URL", file=sys.stderr)
+        return 2
 
-    out_file = render_infographic_html(dsl, args.output, title=args.title)
+    input_path = Path(args.input)
+    if not input_path.is_file():
+        print(f"[-] input file not found: {input_path}", file=sys.stderr)
+        return 2
+
+    try:
+        dsl = input_path.read_text(encoding="utf-8")
+        out_file = render_infographic_html(
+            dsl,
+            args.output,
+            script_source=args.antv_script,
+            title=args.title,
+        )
+    except (OSError, ValueError) as exc:
+        print(f"[-] infographic render setup failed: {exc}", file=sys.stderr)
+        return 2
     print(f"[+] Infographic HTML successfully generated: {out_file}")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

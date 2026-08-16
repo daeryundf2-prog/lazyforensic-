@@ -3,7 +3,7 @@
 		"korean_law": {
 			"command": "node",
 			"args": [
-				"./korean-law-mcp/build/index.js"
+				"./scripts/korean_law_mcp.mjs"
 			],
 			"cwd": "."
 		}

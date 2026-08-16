@@ -1,7 +1,9 @@
 import json
+import os
 import re
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -92,6 +94,53 @@ class GeminiCatalogTests(unittest.TestCase):
         self.assertFalse((SKILLS / "infographic-syntax-creator" / "SKILL.md").exists())
         self.assertTrue((SKILLS / "video-editor" / "manim-video" / "REFERENCE.md").is_file())
         self.assertFalse((SKILLS / "video-editor" / "manim-video" / "SKILL.md").exists())
+
+    def test_infographic_cli_fails_closed_without_input(self):
+        # given no input artifact
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp) / "infographic.html"
+            # when
+            proc = subprocess.run(
+                [
+                    sys.executable,
+                    str(SKILLS / "infographic-creator" / "scripts" / "render_infographic.py"),
+                    "--output",
+                    str(output),
+                ],
+                text=True,
+                encoding="utf-8",
+                capture_output=True,
+                check=False,
+                cwd=str(ROOT),
+            )
+            # then
+            self.assertEqual(proc.returncode, 2)
+            self.assertFalse(output.exists())
+            source = (SKILLS / "infographic-creator" / "scripts" / "render_infographic.py").read_text(
+                encoding="utf-8"
+            )
+            self.assertNotIn("법무법인(유한) 대륜", source)
+            self.assertNotIn("@latest", source)
+
+    def test_law_mcp_wrapper_refuses_missing_key(self):
+        # given a clean environment without a law API key
+        env = os.environ.copy()
+        env.pop("LAW_OC", None)
+        env.pop("KOREAN_LAW_API_KEY", None)
+        # when
+        proc = subprocess.run(
+            ["node", str(ROOT / "scripts" / "korean_law_mcp.mjs")],
+            text=True,
+            encoding="utf-8",
+            capture_output=True,
+            check=False,
+            cwd=str(ROOT),
+            env=env,
+        )
+        # then
+        self.assertEqual(proc.returncode, 78)
+        self.assertIn("disabled", proc.stderr)
+        self.assertIn("LAW_OC", proc.stderr)
 
 
 if __name__ == "__main__":

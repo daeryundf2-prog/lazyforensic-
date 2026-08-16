@@ -56,7 +56,9 @@ python -m unittest discover -s test -v
 
 ## Korean Law MCP
 
-`mcp_config.json`은 `korean-law-mcp/build/index.js`를 가리킨다. 이 저장소에는 `build/`가 없다.
+`mcp_config.json`은 실패 폐쇄 래퍼 `scripts/korean_law_mcp.mjs`를 실행한다.
+래퍼는 `korean-law-mcp/build/index.js`와 `LAW_OC`/`KOREAN_LAW_API_KEY`를 모두 확인한다.
+둘 중 하나라도 없으면 명확한 오류로 종료하며 MCP 서버를 시작하지 않는다.
 
 ```bash
 cd korean-law-mcp
@@ -66,6 +68,8 @@ npm run build
 
 법제처 키는 `LAW_OC` 또는 `KOREAN_LAW_API_KEY`로 넣는다. 공개 폴백 서버는 쿼터/429가 있다.  
 조회 결과는 법률 자문이 아니다.
+
+인포그래픽 렌더러도 실패 폐쇄한다. 입력 `.infographic` 파일과 검토한 로컬 AntV 번들(또는 명시한 고정 HTTPS URL)이 모두 필요하며, 샘플 감정 절차와 `@latest` CDN을 자동 생성하지 않는다.
 
 ---
 
