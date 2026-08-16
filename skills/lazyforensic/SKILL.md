@@ -20,3 +20,5 @@ Antigravity + Gemini 진입점. 먼저 `GEMINI.md`를 읽고, 아래 표에서 *
 | DLP 표 | `../dlp-leakage-detector/SKILL.md` |
 
 병렬 작업은 `../references/antigravity-tools.md`의 `invoke_subagent`만 쓴다. `Model: "flash"` 초안, `Model: "pro"` 스크립트 출력 대조.
+
+UI 기능은 포렌식 라우팅에서 제외한다. 사용자가 명시한 경우에만 `../slopslap/REFERENCE.md`, `../frontend-ui-ux/REFERENCE.md`, `../design-system/REFERENCE.md` 중 하나를 읽는다.

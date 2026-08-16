@@ -4,9 +4,10 @@ Google Antigravity + **Gemini 3.7 Flash (High)** 용 DFIR **초안 보조** 플�
 
 법원 제출 적격 감정 스위트가 아니다. `$MFT` 파서, Timestomping 판정기, 법률 자문 엔진이 아니다.
 
-세션이 뜨면 `hooks.json`이 `GEMINI.md`를 주입한다. 서브에이전트는 `invoke_subagent`의 `Subagents[].Model` (`flash` / `pro` / `flash_lite`)만 쓴다. `view_file`, `model_tier`, OpenCode `task`는 호스트 API가 아니다.
+세션이 뜨면 `hooks.json`이 한국어 `GEMINI.md`를 주입한다. 서브에이전트는 `invoke_subagent`의 `Subagents[].Model` (`flash` / `pro` / `flash_lite`)만 쓴다. `view_file`, `model_tier`, OpenCode `task`는 호스트 API가 아니다.
 
-벤더 카탈로그(`mengto-skills/`, `design-systems/`, `vendor/antv-infographic/`)는 스킬 피커에 올리지 않는다. `INDEX.md`에서 하나만 고른 뒤 Read 한다.
+벤더 카탈로그(`mengto-skills/`, `design-systems/`, `vendor/antv-infographic/`)와 UI 보조 기능(`slopslap`, `frontend-ui-ux`, `design-system`)은 기본 스킬 피커에 올리지 않는다. 사용자가 UI 작업을 명시한 경우에만 `REFERENCE.md`와 `INDEX.md`에서 하나를 고른다.
+Node가 없거나 SessionStart 훅이 실패하면 `GEMINI.md`를 직접 읽은 뒤 진행한다.
 
 ---
 

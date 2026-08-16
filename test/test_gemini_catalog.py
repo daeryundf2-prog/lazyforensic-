@@ -10,7 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SKILLS = ROOT / "skills"
 MAX_DESCRIPTION = 280
-VISIBLE_SKILL_CAP = 16
+VISIBLE_SKILL_CAP = 12
 
 
 def skill_md_files():
@@ -40,6 +40,9 @@ class GeminiCatalogTests(unittest.TestCase):
         self.assertIn("lazyforensic", names)
         self.assertNotIn("infographic-syntax-creator", names)
         self.assertNotIn("manim-video", names)
+        self.assertNotIn("slopslap", names)
+        self.assertNotIn("frontend-ui-ux", names)
+        self.assertNotIn("design-system", names)
 
     def test_descriptions_fit_flash_picker(self):
         # given every visible SKILL.md
@@ -85,8 +88,9 @@ class GeminiCatalogTests(unittest.TestCase):
         ctx = out["hookSpecificOutput"]["additionalContext"]
         self.assertEqual(out["hookSpecificOutput"]["hookEventName"], "SessionStart")
         self.assertIn("invoke_subagent", ctx)
-        self.assertIn("Fail closed", ctx)
-        self.assertIn("host `Read`", ctx)
+        self.assertIn("실패 폐쇄", ctx)
+        self.assertIn("호스트 `Read`", ctx)
+        self.assertIn("증거 오디오", ctx)
 
     def test_vendor_antv_kept_off_catalog(self):
         vendor = ROOT / "vendor" / "antv-infographic" / "creator-full.md"
@@ -94,6 +98,10 @@ class GeminiCatalogTests(unittest.TestCase):
         self.assertFalse((SKILLS / "infographic-syntax-creator" / "SKILL.md").exists())
         self.assertTrue((SKILLS / "video-editor" / "manim-video" / "REFERENCE.md").is_file())
         self.assertFalse((SKILLS / "video-editor" / "manim-video" / "SKILL.md").exists())
+        self.assertTrue((SKILLS / "slopslap" / "REFERENCE.md").is_file())
+        self.assertFalse((SKILLS / "slopslap" / "SKILL.md").exists())
+        self.assertFalse((SKILLS / "frontend-ui-ux" / "SKILL.md").exists())
+        self.assertFalse((SKILLS / "design-system" / "SKILL.md").exists())
 
     def test_infographic_cli_fails_closed_without_input(self):
         # given no input artifact
