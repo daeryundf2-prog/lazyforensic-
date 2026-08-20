@@ -1,23 +1,23 @@
 {
 	"name": "lazyforensic",
-	"version": "0.9.5",
-	"description": "Antigravity + Gemini 3.7 Flash evidence-drafting helper with Korean help prompts for timelines, file metadata, reports, UI, and Kakao text exports. Not a forensic acquisition or court-admissibility suite.",
+	"version": "1.0.0",
+	"description": "Enterprise DFIR & Incident Response plugin for Google Antigravity + Gemini 3.7 Flash. Features EVTX threat hunting, NTFS/MFT parsing, encrypted SQLite/Kakao decryption, memory triage, timeline visualization, and evidence integrity protection.",
 	"author": {
 		"name": "daeryundf2-prog",
 		"url": "https://github.com/daeryundf2-prog"
 	},
 	"license": "MIT",
-	"keywords": ["antigravity", "antigravity-plugin", "forensic", "dfir", "timeline", "kakao"],
+	"keywords": ["antigravity", "antigravity-plugin", "forensic", "dfir", "timeline", "kakao", "evtx", "hayabusa", "mft", "memprocfs"],
 	"skills": "./skills/",
 	"hooks": "./hooks.json",
 	"mcpServers": "./mcp_config.json",
 	"interface": {
 		"displayName": "LazyForensic",
-		"shortDescription": "Gemini 3.7 Flash DFIR drafting for Antigravity",
-		"longDescription": "LazyForensic is tuned for Google Antigravity + Gemini 3.7 Flash. SessionStart injects GEMINI.md. Four lanes (forensic/visual/legal/ui) reach vendor catalogs through INDEX files. The default skill picker stays thin (12 SKILL.md). Skills use invoke_subagent (Model flash/pro/flash_lite) and fail closed when evidence is missing.",
+		"shortDescription": "Enterprise DFIR & Threat Hunting Engine for Antigravity",
+		"longDescription": "Equips Antigravity with production-grade digital forensics capabilities: Hayabusa/Chainsaw EVTX hunting, Dissect NTFS/MFT parsing, Kakao DB decryption, MemProcFS memory analysis, and automated SHA-256 evidence protection hooks.",
 		"developerName": "daeryundf2-prog",
-		"category": "Evidence Drafting Tools",
-		"capabilities": ["Korean Help Guide", "Gemini Host Contract", "JSON Timeline HTML", "OS-visible File Metadata", "Kakao Text Export Parser", "Neutral Report Drafting"],
+		"category": "DFIR & Incident Response",
+		"capabilities": ["EVTX Sigma Hunting", "NTFS & MFT Analysis", "KakaoTalk DB Decryption", "Memory Triage", "Timeline Visualization", "SHA-256 Audit Trail", "Evidence Write-Lock"],
 		"brandColor": "#1E3A8A"
 	}
 }
