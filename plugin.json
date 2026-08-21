@@ -1,7 +1,7 @@
 {
 	"name": "lazyforensic",
 	"version": "1.0.0",
-	"description": "Enterprise DFIR & Incident Response plugin for Google Antigravity + Gemini 3.7 Flash. Features EVTX threat hunting, NTFS/MFT parsing, encrypted SQLite/Kakao decryption, memory triage, timeline visualization, and evidence integrity protection.",
+	"description": "Google Antigravity + Gemini 3.7 Flash forensic assistant — 4 lanes (help/forensic/visual/legal). Not a forensic acquisition or court-admissibility suite. Organizes evidence, parses Kakao text exports, renders timelines, drafts reports, and guards integrity via SHA-256 audit hooks.",
 	"author": {
 		"name": "daeryundf2-prog",
 		"url": "https://github.com/daeryundf2-prog"
@@ -13,11 +13,11 @@
 	"mcpServers": "./mcp_config.json",
 	"interface": {
 		"displayName": "LazyForensic",
-		"shortDescription": "Enterprise DFIR & Threat Hunting Engine for Antigravity",
-		"longDescription": "Equips Antigravity with production-grade digital forensics capabilities: Hayabusa/Chainsaw EVTX hunting, Dissect NTFS/MFT parsing, Kakao DB decryption, MemProcFS memory analysis, and automated SHA-256 evidence protection hooks.",
+		"shortDescription": "Forensic evidence organizer for Antigravity (not a court suite)",
+		"longDescription": "Equips Antigravity with 4 lanes (help/forensic/visual/legal) for Gemini 3.7 Flash: Kakao text-export parsing, os.stat hash/timestamp checks, timeline visualization, report drafts, and SHA-256 audit hooks. Not a forensic acquisition or court-admissibility suite. EVTX/MFT/Memory triage are bring-your-own-binary wrappers (Hayabusa/Chainsaw/Dissect/MemProcFS) — no bundled acquisition, no court claim.",
 		"developerName": "daeryundf2-prog",
 		"category": "DFIR & Incident Response",
-		"capabilities": ["EVTX Sigma Hunting", "NTFS & MFT Analysis", "KakaoTalk DB Decryption", "Memory Triage", "Timeline Visualization", "SHA-256 Audit Trail", "Evidence Write-Lock"],
+		"capabilities": ["Kakao Text-Export Parsing", "OS Timestamp & Hash Audit", "Timeline Visualization", "Report Drafting", "SHA-256 Audit Trail", "Evidence Write-Lock (best-effort)", "Bring-Your-Own-Binary EVTX/MFT/Memory Wrappers"],
 		"brandColor": "#1E3A8A"
 	}
 }

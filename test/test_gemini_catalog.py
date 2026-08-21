@@ -10,7 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SKILLS = ROOT / "skills"
 MAX_DESCRIPTION = 280
-VISIBLE_SKILL_CAP = 12
+VISIBLE_SKILL_CAP = 16
 
 
 def skill_md_files():
@@ -210,8 +210,9 @@ class GeminiCatalogTests(unittest.TestCase):
 
     def test_plugin_version_and_lane_copy(self):
         data = json.loads((ROOT / "plugin.json").read_text(encoding="utf-8"))
-        self.assertEqual(data["version"], "0.9.5")
+        self.assertEqual(data["version"], "1.0.0")
         self.assertIn("lanes", data["interface"]["longDescription"].lower())
+        self.assertIn("not a forensic acquisition or court-admissibility suite", json.dumps(data, ensure_ascii=False).lower())
         self.assertTrue((ROOT / "docs" / "GAPS.md").is_file())
         self.assertTrue((SKILLS / "ui-studio" / "SKILL.md").is_file())
 

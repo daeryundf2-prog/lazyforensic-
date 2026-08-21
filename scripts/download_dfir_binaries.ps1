@@ -1,9 +1,12 @@
 # =========================================================================
 # download_dfir_binaries.ps1 - DFIR 핵심 도구(Hayabusa, Chainsaw, EZ-Tools) 원클릭 다운로더
+# Bring-your-own-binary: LazyForensic에 바이너리 미포함, 별도 다운로드 래퍼
+# 다운로드 후 SHA256 수동 검증 필요. 자동 검증/SBOM 미제공.
 # =========================================================================
 
 param(
-    [string]$TargetDir = "$PSScriptRoot\..\tools\bin"
+    [string]$TargetDir = "$PSScriptRoot\..\tools\bin",
+    [switch]$VerifyHash
 )
 
 $ErrorActionPreference = "Stop"
@@ -80,5 +83,8 @@ if (Test-Path $MfteExe) {
     }
 }
 
+Write-Host "`n[!] SECURITY: Downloaded binaries are NOT hash-verified. Verify SHA256 from official releases before use." -ForegroundColor Yellow
+Write-Host "    Hayabusa: https://github.com/Yamato-Security/hayabusa/releases" -ForegroundColor Gray
+Write-Host "    Chainsaw: https://github.com/WithSecureLabs/chainsaw/releases" -ForegroundColor Gray
 Write-Host "`n[✓] Setup complete! To add to PATH in current session:" -ForegroundColor Green
 Write-Host "    `$env:Path += ';$TargetDir'" -ForegroundColor White

@@ -60,9 +60,9 @@ ROLE ENVELOPE: mayFinalizeRun=false; mayModifyGlobalRunState=false; mustReturn=S
 
 사용자가 `설명서`, `도움말`, `명령어 알려줘`, `무엇을 할 수 있어?`라고 하면 `docs/USER_GUIDE.md`를 읽고 기능별 요청 예시를 보여준다. 도움말 요청만으로 분석이나 파일 생성을 시작하지 않는다.
 
-### Forensic
+### Forensic (12+4 — BYO binary 래퍼는 도구 있을 때만)
 
-진입점은 `skills/lazyforensic/SKILL.md`다.
+진입점은 `skills/lazyforensic/SKILL.md`다. BYO 래퍼는 바이너리/라이브러리 미포함이며, 없으면 결과 생성 안 함.
 
 | 요청 | 스킬 |
 | :--- | :--- |
@@ -74,6 +74,10 @@ ROLE ENVELOPE: mayFinalizeRun=false; mayModifyGlobalRunState=false; mustReturn=S
 | 구간 자르기/필름스트립 | `skills/video-editor/SKILL.md` |
 | 감정서 문장 교정 | `skills/korean-writing-reviewer/SKILL.md` |
 | DLP 표 정리 | `skills/dlp-leakage-detector/SKILL.md` |
+| EVTX 헌팅 (BYO Hayabusa/Chainsaw) | `skills/dfir-evtx-hunter/SKILL.md` |
+| MFT/Prefetch (BYO Dissect/EZ-Tools) | `skills/forensic-mft-parser/SKILL.md` |
+| 카카오 DB 래퍼 (txt만) | `skills/kakao-db-decryptor/SKILL.md` |
+| 메모리 래퍼 (BYO MemProcFS) | `skills/memory-triage/SKILL.md` |
 
 ### Visual
 

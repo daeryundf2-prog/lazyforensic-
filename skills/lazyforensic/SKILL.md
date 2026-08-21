@@ -11,7 +11,7 @@ Antigravity + Gemini 진입점. 먼저 `GEMINI.md`를 읽고, **레인 하나**�
 
 사용자가 `설명서`, `도움말`, `명령어 알려줘`, `무엇을 할 수 있어?`라고 요청하면 `../../docs/USER_GUIDE.md`를 읽고 기능별 채팅 예시와 필요한 입력을 안내한다. 기능을 실행하지 않는다.
 
-## Forensic
+## Forensic (12+4 확장 — BYO binary 래퍼는 도구 있을 때만)
 
 | 요청 | 스킬 |
 | :--- | :--- |
@@ -23,6 +23,10 @@ Antigravity + Gemini 진입점. 먼저 `GEMINI.md`를 읽고, **레인 하나**�
 | 자르기/필름스트립 | `../video-editor/SKILL.md` |
 | 문장 교정 | `../korean-writing-reviewer/SKILL.md` |
 | DLP 표 | `../dlp-leakage-detector/SKILL.md` |
+| EVTX 헌팅 (BYO Hayabusa/Chainsaw) | `../dfir-evtx-hunter/SKILL.md` |
+| MFT/Prefetch (BYO Dissect/EZ-Tools) | `../forensic-mft-parser/SKILL.md` |
+| 카카오 DB 래퍼 (txt만) | `../kakao-db-decryptor/SKILL.md` |
+| 메모리 래퍼 (BYO MemProcFS) | `../memory-triage/SKILL.md` |
 
 ## Visual
 
