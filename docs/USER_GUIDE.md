@@ -84,10 +84,13 @@ python -m unittest discover -s test -v
 
 ## 현재 한계
 
-- 카카오톡 SQLite/백업 DB는 읽지 않는다.
-- `$MFT`, Timestomping, Maya, MOV 내부시각 감정 기능은 없다.
+- 카카오톡 SQLite/백업 DB는 읽지 않는다. `kakao-db-decryptor`는 래퍼이며 복호화 미제공.
+- `$MFT`, Timestomping, Maya, MOV 내부시각 감정 기능은 없다. `forensic-mft-parser`는 BYO Dissect/EZ-Tools 래퍼.
+- EVTX/Memory (Hayabusa/Chainsaw/MemProcFS/Volatility)는 BYO 바이너리 래퍼이며 미포함.
+- 타임라인은 최대 10,000 events, `details` 2KB cap (초과 시 잘림)
 - DLP는 확보된 로그를 정리하는 체크리스트이며 자동 탐지 엔진이 아니다.
-- 법령 MCP는 빌드와 `LAW_OC`가 모두 필요하다.
+- 법령 MCP는 빌드와 `LAW_OC`가 모두 필요하다. `korean-law-mcp/node_modules`는 로컬 전용(679M) — `.gitignore`
+- 증거 Hook은 best-effort이며 OS `chmod 444`를 대체하지 않는다. 감사로그는 `.lazyforensic/audit_trail.jsonl`에 격리.
 - 법원 제출 적격성이나 법률 자문을 보장하지 않는다.
 
 상세한 누락 기능은 `docs/GAPS.md`, 배포·라이선스 주의사항은 `NOTICE`를 본다.

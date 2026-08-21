@@ -28,3 +28,12 @@ timeline_strip.png
 
 # Generated dependencies / build output
 korean-law-mcp/build/
+korean-law-mcp/node_modules/
+
+# LazyForensic audit trails (per-case, best-effort)
+.lazyforensic/
+audit_trail.jsonl
+
+# Local DFIR binary cache (BYO, not committed)
+tools/bin/
+tools/

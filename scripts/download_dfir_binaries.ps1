@@ -83,8 +83,26 @@ if (Test-Path $MfteExe) {
     }
 }
 
-Write-Host "`n[!] SECURITY: Downloaded binaries are NOT hash-verified. Verify SHA256 from official releases before use." -ForegroundColor Yellow
-Write-Host "    Hayabusa: https://github.com/Yamato-Security/hayabusa/releases" -ForegroundColor Gray
+Write-Host "`n[!] SECURITY: Downloaded binaries are NOT auto hash-verified. Use -VerifyHash or check manually:" -ForegroundColor Yellow
+Write-Host "    Hayabusa: https://github.com/Yamato-Security/hayabusa/releases (compare SHA256 from release notes)" -ForegroundColor Gray
 Write-Host "    Chainsaw: https://github.com/WithSecureLabs/chainsaw/releases" -ForegroundColor Gray
+Write-Host "    EZ-Tools: https://ericzimmerman.github.io/#!index.md" -ForegroundColor Gray
+
+if ($VerifyHash) {
+    Write-Host "`n[VerifyHash] Computing SHA256 for downloaded binaries..." -ForegroundColor Cyan
+    Get-ChildItem -Path $TargetDir -File -ErrorAction SilentlyContinue | ForEach-Object {
+        $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash
+        Write-Host ("  {0}  {1}" -f $hash.ToLower(), $_.Name) -ForegroundColor Gray
+    }
+    $sbom = Join-Path $TargetDir "sbom.json"
+    $entries = Get-ChildItem -Path $TargetDir -File | ForEach-Object {
+        @{ name = $_.Name; sha256 = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower(); size = $_.Length; path = $_.FullName }
+    }
+    @{ generated_at = (Get-Date -Format o); target_dir = $TargetDir; binaries = $entries } | ConvertTo-Json -Depth 4 | Out-File -Encoding utf8 $sbom
+    Write-Host "  SBOM written to $sbom (manual compare with official release hashes required)" -ForegroundColor Green
+} else {
+    Write-Host "`n  Tip: Re-run with -VerifyHash to compute SHA256 and write tools/bin/sbom.json" -ForegroundColor DarkGray
+}
+
 Write-Host "`n[✓] Setup complete! To add to PATH in current session:" -ForegroundColor Green
 Write-Host "    `$env:Path += ';$TargetDir'" -ForegroundColor White

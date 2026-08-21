@@ -65,15 +65,23 @@ def transcribe_video(
         return []
 
     audio_path = out_dir / "audio.mp3"
-    extract_audio(video_path, audio_path)
-    if not audio_path.exists() or audio_path.stat().st_size == 0:
-        return []
+    try:
+        extract_audio(video_path, audio_path)
+        if not audio_path.exists() or audio_path.stat().st_size == 0:
+            return []
 
-    if provider == "groq":
-        return _transcribe_groq(audio_path, key)
-    elif provider == "openai":
-        return _transcribe_openai(audio_path, key)
-    return []
+        if provider == "groq":
+            return _transcribe_groq(audio_path, key)
+        elif provider == "openai":
+            return _transcribe_openai(audio_path, key)
+        return []
+    finally:
+        # 증거 오디오는 외부 전송 후에도 로컬에 남기지 않는다 (반출 동의 시에도 cleanup)
+        try:
+            if audio_path.exists():
+                audio_path.unlink()
+        except Exception:
+            pass
 
 
 def _transcribe_groq(audio_path: Path, api_key: str) -> list[dict]:

@@ -283,15 +283,23 @@ def escape_text(value):
     return html.escape(str(value), quote=True)
 
 
+MAX_EVENTS = 10000
+
 def load_events(path):
     with open(path, "r", encoding="utf-8") as f:
         data = json.load(f)
     if not isinstance(data, list):
         raise ValueError("input JSON must be a list of event objects")
+    if len(data) > MAX_EVENTS:
+        raise ValueError(f"too many events: {len(data)} > {MAX_EVENTS} (split input or use --max-events)")
     events = []
     for i, ev in enumerate(data):
         if not isinstance(ev, dict):
             raise ValueError(f"event[{i}] must be an object")
+        # Guard: details length cap 2KB to prevent HTML DoS via huge field
+        if isinstance(ev.get("details"), str) and len(ev["details"]) > 2048:
+            ev = dict(ev)
+            ev["details"] = ev["details"][:2048] + " …(truncated 2KB)"
         events.append(ev)
     return events
 
