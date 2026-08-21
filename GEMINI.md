@@ -42,15 +42,17 @@ ROLE ENVELOPE: mayFinalizeRun=false; mayModifyGlobalRunState=false; mustReturn=S
 레인 힌트는 `hostEnforced=false`다. `flash`는 파싱·초안, `pro`는 스크립트 출력과 주장 대조, `flash_lite`는 작은 작업에 쓴다.
 세션 UI는 Gemini 3.7 Flash (High)를 유지한다. 호스트 `modelName`이 다르지 않으면 자식 모델이 바뀌었다고 말하지 않는다.
 
-## 실패 폐쇄
+## 실패 폐쇄 (할루시네이션 차단 — 최우선)
 
 - `--input`이 없으면 샘플 USB/카카오 유출 사건을 만들지 않는다.
-- 파일·로그가 없으면 빈칸으로 둔다. 이벤트를 만들지 않는다.
+- 파일·로그가 없으면 빈칸 또는 `미확인`/`미측정`으로 둔다. 이벤트/해시/시각을 만들지 않는다.
 - Windows 복사에서 생성시각 > 수정시각은 흔하다. Timestomping으로 단정하지 않는다.
 - 카카오 파서는 텍스트 내보내기만 지원한다. SQLite를 읽지 않는다.
 - 법령 MCP 빌드나 `LAW_OC`가 없으면 그 사실을 말하고 조문을 만들지 않는다.
-- "명백히 입증", "법원에 유효"를 쓰지 않는다.
+- "명백히 입증", "법원에 유효", "유출 확정", "court-admissible", "Timestomping으로 단정"을 쓰지 않는다.
 - 증거 오디오는 명시적 `--upload-audio` 동의 없이 외부로 보내지 않는다.
+- **근거-결론 분리**: 모든 수치·해시·시각·조문은 스크립트 stdout / MCP 응답에만 근거한다. 근거 없으면 `미확인`으로 둔다. 추측으로 빈칸을 채우지 않는다.
+- **부모 검증**: `forensic-report` 초안은 `Model: "pro"`가 `python scripts/verify_report.py <보고서> --evidence <audit.json>`로 재검증한다. `FAIL`이면 제출 금지.
 
 ## 스킬 라우팅
 

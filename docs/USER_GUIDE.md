@@ -76,6 +76,9 @@ python skills/video-editor/helpers/render.py edl.json -o extracted_clip.mp4 --bu
 # 법령 MCP 로컬 빌드
 node scripts/setup_korean_law.mjs
 
+# 보고서 할루시네이션 검증 (부모가 Model pro로 재실행)
+python scripts/verify_report.py "보고서초안.md" --evidence audit.json --timeline events.json --json
+
 # 전체 테스트
 python -m unittest discover -s test -v
 ```
