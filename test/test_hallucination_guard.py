@@ -76,6 +76,26 @@ class HallucinationGuardTests(unittest.TestCase):
         spec2.loader.exec_module(m2)
         self.assertEqual(m2.main(["/no/such/file"]), 2)
 
+    def test_hooks_wire_hallucination_guard_unconditional(self):
+        data = json.loads((ROOT / "hooks.json").read_text(encoding="utf-8"))
+        post = data["hooks"]["PostToolUse"][0]["hooks"]
+        # must have 2 hooks now: evidence_guard + hallucination_guard
+        self.assertEqual(len(post), 2)
+        cmds = [h["command"] for h in post]
+        self.assertTrue(any("hallucination_guard" in c for c in cmds))
+        hall = [h for h in post if "hallucination_guard" in h["command"]][0]
+        self.assertEqual(hall["failurePolicy"], "FAIL_CLOSED")
+        self.assertIn("보고서", hall["statusMessage"])
+
+    def test_gemini_and_router_require_verify_on_report_keywords(self):
+        gemini = (ROOT / "GEMINI.md").read_text(encoding="utf-8")
+        router = (ROOT / "skills" / "lazyforensic" / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("보고서", gemini)
+        self.assertIn("검토해줘", gemini)
+        self.assertIn("무조건", gemini)
+        self.assertIn("hallucination_guard", gemini)
+        self.assertIn("무조건", router)
+
 
 if __name__ == "__main__":
     unittest.main()

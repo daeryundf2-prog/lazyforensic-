@@ -58,11 +58,13 @@ ROLE ENVELOPE: mayFinalizeRun=false; mayModifyGlobalRunState=false; mustReturn=S
 
 한 턴에 **레인 하나**만 고른다. 레인 안에서 `SKILL.md` / `REFERENCE.md` / `INDEX.md`를 **하나만** 읽는다.
 
+> **무조건 검증**: 채팅에 `보고서` 또는 `검토해줘`가 포함되면 호스트 `PostToolUse`가 `hallucination_guard.mjs → verify_report.py`를 **무조건** 실행한다. LLM이 스킬을 스킵하고 직접 `Write`해도 차단된다 (FAIL_CLOSED). 검증 FAIL이면 파일을 수정 없이 제출 금지.
+
 ### Help
 
 사용자가 `설명서`, `도움말`, `명령어 알려줘`, `무엇을 할 수 있어?`라고 하면 `docs/USER_GUIDE.md`를 읽고 기능별 요청 예시를 보여준다. 도움말 요청만으로 분석이나 파일 생성을 시작하지 않는다.
 
-### Forensic (12+4 — BYO binary 래퍼는 도구 있을 때만)
+### Forensic (12+4 — BYO binary 래퍼는 도구 있을 때만, 보고서/검토해줘 = 무조건 검증)
 
 진입점은 `skills/lazyforensic/SKILL.md`다. BYO 래퍼는 바이너리/라이브러리 미포함이며, 없으면 결과 생성 안 함.
 

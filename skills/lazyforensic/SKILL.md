@@ -11,18 +11,20 @@ Antigravity + Gemini 진입점. 먼저 `GEMINI.md`를 읽고, **레인 하나**�
 
 사용자가 `설명서`, `도움말`, `명령어 알려줘`, `무엇을 할 수 있어?`라고 요청하면 `../../docs/USER_GUIDE.md`를 읽고 기능별 채팅 예시와 필요한 입력을 안내한다. 기능을 실행하지 않는다.
 
-## Forensic (12+4 확장 — BYO binary 래퍼는 도구 있을 때만)
+## Forensic (12+4 확장 — BYO binary 래퍼는 도구 있을 때만, 보고서/검토해줘 = 무조건 검증)
 
-| 요청 | 스킬 |
-| :--- | :--- |
-| 타임라인 HTML | `../forensic-timeline/SKILL.md` |
-| 생성/수정 시각, 해시 | `../forensic-audit/SKILL.md` |
-| 카카오톡 내보내기 | `../kakao-chat-extractor/SKILL.md` |
-| 감정서 초안 | `../forensic-report/SKILL.md` |
-| CCTV/동영상 프레임 | `../forensic-video/SKILL.md` |
-| 자르기/필름스트립 | `../video-editor/SKILL.md` |
-| 문장 교정 | `../korean-writing-reviewer/SKILL.md` |
-| DLP 표 | `../dlp-leakage-detector/SKILL.md` |
+**트리거에 `보고서` 또는 `검토해줘`가 포함되면 모든 경로는 `verify_report.py` 무조건 검증을 거친다. 호스트 `PostToolUse`가 LLM 스킵 여부와 무관하게 차단한다.**
+
+| 요청 | 스킬 | 무조건 검증 |
+| :--- | :--- | :--- |
+| 타임라인 HTML | `../forensic-timeline/SKILL.md` | — |
+| 생성/수정 시각, 해시 | `../forensic-audit/SKILL.md` | — |
+| 카카오톡 내보내기 | `../kakao-chat-extractor/SKILL.md` | — |
+| **보고서 초안** | `../forensic-report/SKILL.md` | **보고서 → 무조건** |
+| CCTV/동영상 프레임 | `../forensic-video/SKILL.md` | — |
+| 자르기/필름스트립 | `../video-editor/SKILL.md` | — |
+| **문장 교정** | `../korean-writing-reviewer/SKILL.md` | **검토해줘 → 무조건 (보고서면)** |
+| DLP 표 | `../dlp-leakage-detector/SKILL.md` | — |
 | EVTX 헌팅 (BYO Hayabusa/Chainsaw) | `../dfir-evtx-hunter/SKILL.md` |
 | MFT/Prefetch (BYO Dissect/EZ-Tools) | `../forensic-mft-parser/SKILL.md` |
 | 카카오 DB 래퍼 (txt만) | `../kakao-db-decryptor/SKILL.md` |
