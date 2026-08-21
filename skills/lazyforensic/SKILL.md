@@ -11,9 +11,9 @@ Antigravity + Gemini 진입점. 먼저 `GEMINI.md`를 읽고, **레인 하나**�
 
 사용자가 `설명서`, `도움말`, `명령어 알려줘`, `무엇을 할 수 있어?`라고 요청하면 `../../docs/USER_GUIDE.md`를 읽고 기능별 채팅 예시와 필요한 입력을 안내한다. 기능을 실행하지 않는다.
 
-## Forensic (12+4 확장 — BYO binary 래퍼는 도구 있을 때만, 보고서/검토해줘 = 무조건 검증)
+## Forensic (12+4+1 확장 — BYO 래퍼는 도구 있을 때만, 보고서/검증 계열 = 무조건 검증)
 
-**트리거에 `보고서` 또는 `검토해줘`가 포함되면 모든 경로는 `verify_report.py` 무조건 검증을 거친다. 호스트 `PostToolUse`가 LLM 스킵 여부와 무관하게 차단한다.**
+**트리거에 `보고서`/`검토해줘`/`검증해줘`/`검증`/`할루시네이션`/`할루체크`/`팩트체크`/`거짓말검사`/`사실확인`/`무결성검사`/`verify` 중 하나라도 포함되면 모든 경로는 `report-guard` + `verify_report.py` 무조건 검증을 거친다. 호스트 `PostToolUse`가 LLM 스킵 여부와 무관하게 차단한다. 슬래시 `/verify`, `/할루체크`, `/검증` 동일.**
 
 | 요청 | 스킬 | 무조건 검증 |
 | :--- | :--- | :--- |
@@ -21,6 +21,7 @@ Antigravity + Gemini 진입점. 먼저 `GEMINI.md`를 읽고, **레인 하나**�
 | 생성/수정 시각, 해시 | `../forensic-audit/SKILL.md` | — |
 | 카카오톡 내보내기 | `../kakao-chat-extractor/SKILL.md` | — |
 | **보고서 초안** | `../forensic-report/SKILL.md` | **보고서 → 무조건** |
+| **보고서 검증 (무조건)** | `../report-guard/SKILL.md` | **검증/할루체크/팩트체크 → 무조건** |
 | CCTV/동영상 프레임 | `../forensic-video/SKILL.md` | — |
 | 자르기/필름스트립 | `../video-editor/SKILL.md` | — |
 | **문장 교정** | `../korean-writing-reviewer/SKILL.md` | **검토해줘 → 무조건 (보고서면)** |

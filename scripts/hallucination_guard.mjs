@@ -34,7 +34,7 @@ function collectRawInput() {
 
 function shouldGuard(targetFile, rawInput) {
   // "보고서" / "검토" 키워드가 rawInput이나 파일명에 있으면 무조건 가드
-  const keywordHit = /보고서|검토해줘|검증해줘|할루시네이션|법적.*검토/i.test(rawInput);
+  const keywordHit = /보고서|검토해줘|검증해줘|검증|할루시네이션|할루체크|팩트체크|거짓말검사|사실확인|무결성검사|verify|\/verify|\/할루체크|\/검증|법적.*검토/i.test(rawInput);
   const reportExt = /\.(md|html|txt)$/i.test(targetFile);
   const reportPathHint = /report|보고서|draft|초안/i.test(targetFile);
   // 키워드 + 보고서 파일이면 무조건, 그 외 보고서 파일은 샘플링(경량)

@@ -58,13 +58,13 @@ ROLE ENVELOPE: mayFinalizeRun=false; mayModifyGlobalRunState=false; mustReturn=S
 
 한 턴에 **레인 하나**만 고른다. 레인 안에서 `SKILL.md` / `REFERENCE.md` / `INDEX.md`를 **하나만** 읽는다.
 
-> **무조건 검증**: 채팅에 `보고서` 또는 `검토해줘`가 포함되면 호스트 `PostToolUse`가 `hallucination_guard.mjs → verify_report.py`를 **무조건** 실행한다. LLM이 스킬을 스킵하고 직접 `Write`해도 차단된다 (FAIL_CLOSED). 검증 FAIL이면 파일을 수정 없이 제출 금지.
+> **무조건 검증**: 채팅에 `보고서`/`검토해줘`/`검증해줘`/`검증`/`할루시네이션`/`할루체크`/`팩트체크`/`거짓말검사`/`사실확인`/`무결성검사`/`verify` 중 하나라도 포함되면 호스트 `PostToolUse`가 `hallucination_guard.mjs → verify_report.py`를 **무조건** 실행한다. LLM이 스킬을 스킵하고 직접 `Write`해도 차단된다 (FAIL_CLOSED). 검증 FAIL이면 파일을 수정 없이 제출 금지. 슬래시 `/verify`, `/할루체크`, `/검증` 도 동일 게이트.
 
 ### Help
 
 사용자가 `설명서`, `도움말`, `명령어 알려줘`, `무엇을 할 수 있어?`라고 하면 `docs/USER_GUIDE.md`를 읽고 기능별 요청 예시를 보여준다. 도움말 요청만으로 분석이나 파일 생성을 시작하지 않는다.
 
-### Forensic (12+4 — BYO binary 래퍼는 도구 있을 때만, 보고서/검토해줘 = 무조건 검증)
+### Forensic (12+4+1 — BYO binary 래퍼는 도구 있을 때만, 보고서/검토해줘/검증 계열 = 무조건 검증)
 
 진입점은 `skills/lazyforensic/SKILL.md`다. BYO 래퍼는 바이너리/라이브러리 미포함이며, 없으면 결과 생성 안 함.
 
@@ -74,6 +74,7 @@ ROLE ENVELOPE: mayFinalizeRun=false; mayModifyGlobalRunState=false; mustReturn=S
 | 생성/수정 시각, 해시 | `skills/forensic-audit/SKILL.md` |
 | 카카오톡 txt | `skills/kakao-chat-extractor/SKILL.md` |
 | 감정서/보고서 초안 | `skills/forensic-report/SKILL.md` |
+| **보고서 검증 (무조건)** | `skills/report-guard/SKILL.md` |
 | CCTV/동영상 프레임 | `skills/forensic-video/SKILL.md` |
 | 구간 자르기/필름스트립 | `skills/video-editor/SKILL.md` |
 | 감정서 문장 교정 | `skills/korean-writing-reviewer/SKILL.md` |

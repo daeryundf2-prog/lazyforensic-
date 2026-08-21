@@ -12,6 +12,8 @@
 | 타임라인 HTML | `events.json으로 사건 타임라인 HTML을 만들어줘` |
 | 감정서 초안 | `해시 결과와 parsed.json으로 포렌식 감정서 초안을 써줘` |
 | 문장 교정 | `이 보고서를 교정해줘. 수치와 해시는 바꾸지 마: <경로>` |
+| 보고서 검증 (무조건) | `이 보고서 검증해줘: <경로>` / `할루체크해줘: <경로>` / `/verify <경로>` |
+| 팩트체크 | `팩트체크해줘: <경로>` / `거짓말검사해줘: <경로>` |
 | 보고서 디자인 | `이 보고서를 Linear 느낌의 HTML 뷰어로 만들어줘: <경로>` |
 | 디자인 검토 | `이 HTML의 슬롭·레이아웃·간격·대비를 검토해줘: <경로>` |
 | 동영상 프레임 | `이 CCTV에서 프레임과 메타데이터를 추출해줘: <경로>` |
@@ -76,8 +78,10 @@ python skills/video-editor/helpers/render.py edl.json -o extracted_clip.mp4 --bu
 # 법령 MCP 로컬 빌드
 node scripts/setup_korean_law.mjs
 
-# 보고서 할루시네이션 검증 (부모가 Model pro로 재실행)
+# 보고서 할루시네이션 검증 — 보고서/검토해줘/검증/할루체크 시 호스트가 무조건 실행, 수동으로도 가능
 python scripts/verify_report.py "보고서초안.md" --evidence audit.json --timeline events.json --json
+# 채팅 트리거 (모두 동일 게이트): 보고서, 검토해줘, 검증해줘, 검증, 할루시네이션, 할루체크, 팩트체크, 거짓말검사, 사실확인, 무결성검사
+# 슬래시: /verify, /할루체크, /검증
 
 # 전체 테스트
 python -m unittest discover -s test -v
