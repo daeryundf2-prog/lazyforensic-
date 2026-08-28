@@ -70,19 +70,17 @@ python -m unittest discover -s test   # 환경 점검 겸 77개 테스트 (수 �
 # 0. 사례 폴더에 증거 텍스트를 둔다 (카카오톡 대화방 메뉴에서 텍스트로 내보낸 파일)
 cp "카카오톡_대화내용.txt" case/
 
-# 1. 대화 파싱 (모바일/PC 포맷 자동 판별, UTF-8/CP949/UTF-16)
-python skills/kakao-chat-extractor/scripts/parse_kakao.py case/카카오톡_대화내용.txt --output case/parsed.json
+# 1. 대화 파싱 + 타임라인 이벤트 변환 (모바일/PC 자동 판별, UTF-8/CP949/UTF-16)
+python skills/kakao-chat-extractor/scripts/parse_kakao.py case/카카오톡_대화내용.txt \
+       --output case/parsed.json --events-out case/events.json
 
-# 2. 파싱 결과 → events.json (LLM에게 "parsed.json을 events.json으로 변환해줘"로 시켜도 됨)
-#    {"timestamp": "2024-01-16 14:15:00", "description": "...", "category": "chat"} 배열
-
-# 3. 타임라인 HTML (외부 의존 0 — 파일 하나를 브라우저로 열면 끝)
+# 2. 타임라인 HTML (외부 의존 0 — 파일 하나를 브라우저로 열면 끝)
 python skills/forensic-timeline/scripts/generate_timeline.py --input case/events.json --output case/timeline.html
 
-# 4. 원본 파일 해시 감사 → audit.json (검증의 근거가 된다)
+# 3. 원본 파일 해시 감사 → audit.json (검증의 근거가 된다)
 python skills/forensic-audit/scripts/audit_timestamps.py case/카카오톡_대화내용.txt --json > case/audit.json
 
-# 5. 보고서 초안 작성 후 검증 — 근거 없는 해시/금지 문구는 FAIL
+# 4. 보고서 초안 작성 후 검증 — 근거 없는 해시/금지 문구는 FAIL
 python scripts/verify_report.py case/감정서초안.md --evidence case/audit.json --json
 ```
 

@@ -35,6 +35,9 @@ UTF-8, UTF-8 BOM, CP949(레거시 한국어 Windows), UTF-16 LE/BE를 시도한�
 
 ```bash
 python skills/kakao-chat-extractor/scripts/parse_kakao.py "카카오톡_대화내용.txt" --keyword "키워드" --output parsed.json
+
+# 타임라인용 events.json 을 같이 뽑을 수 있다 (시각 확정 레코드만 — 근거 없는 시각은 제외)
+python skills/kakao-chat-extractor/scripts/parse_kakao.py "카카오톡_대화내용.txt" --output parsed.json --events-out events.json
 ```
 
 ## Antigravity / Gemini
