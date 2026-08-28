@@ -1,59 +1,143 @@
 # LazyForensic (v1.0.1)
 
-Google Antigravity + **Gemini 3.7 Flash** 용 포렌식 **보조** 플러그인 — 4 lanes (help/forensic/visual/legal). **Not a forensic acquisition or court-admissibility suite.** 증거 정리·텍스트 파싱·타임라인 렌더·보고서 초안에 집중하며, 획득/검증은 별도 검증된 도구로 수행해야 한다.
+Google Antigravity + Gemini(3.7 Flash) 용 **디지털 포렌식 보조** 플러그인.
+증거 텍스트 파싱 → 타임라인 렌더 → 해시 감사 → 보고서 초안 → **초안 검증**까지의 반복 노동을 줄여 준다.
 
-> **한계**: `docs/GAPS.md`와 `GEMINI.md`의 “하지 않는 일”을 먼저 읽는다. EVTX/MFT/Memory는 **bring-your-own-binary 래퍼**이며 바이너리 미포함 — 스킬은 `scripts/check_tool.py` 게이트로 도구 존재를 먼저 확인한다. 카카오톡은 **텍스트 내보내기만** 지원(모바일/PC 실제 포맷). 무라이선스 제3자 디자인 카탈로그는 제거되었다(`NOTICE`).
-
-## 🚀 주요 기능 및 스킬 (정직 표기)
-
-### 1. 침해사고 & 이벤트 로그 (EVTX) — 래퍼
-*   **`dfir-evtx-hunter`**: Hayabusa/Chainsaw **래퍼** (BYO binary). 4000+ Sigma 룰은 Hayabusa가 있을 때만. 자동 탐지·MITRE 확정 아님.
-
-### 2. 파일시스템 & 아티팩트
-*   **`forensic-mft-parser`**: Dissect/EZ-Tools **래퍼** (BYO binary). `$MFT`/`Prefetch`/`Shimcache`는 도구 있을 때만. 실패 시 `error` 필드 + exit 3 (빈 결과 위장 없음).
-*   **`forensic-audit`**: `os.stat()` 표면 타임스탬프 + SHA-256/MD5. `$MFT`/`Timestomping` 판단 아님. `--json`으로 `audit.json` 생성.
-
-### 3. 메신저
-*   **`kakao-chat-extractor`**: 모바일/PC(대화내용 저장) 텍스트 내보내기 파싱 (UTF-8/CP949/UTF-16, 첨부는 확정 표기만, 시스템 이벤트 분리).
-*   **`kakao-db-decryptor`**: **제한적 래퍼** — SQLite 복호화 미제공.
-
-### 4. 메모리 포렌식 — 래퍼
-*   **`memory-triage`**: MemProcFS/Volatility 3 **래퍼** (BYO binary). 마운트/은닉 프로세스 자동 분석 아님.
-
-### 5. 증거 무결성 보호 훅 (best-effort)
-*   `PreToolUse` (Evidence Write-Lock, best-effort): `*.raw`/`*.evtx`/`*.E01`/`evidence/` 쓰기 시도 차단 시도. OS 읽기전용(`chmod 444`) 병행 필요.
-*   `PostToolUse` (SHA-256 Audit Log): 산출물 해시 체크포인트를 `.lazyforensic/audit_trail.jsonl`에 기록. Chain-of-Custody 증명 아님.
-*   `PostToolUse` (검증 사후 게이트): 보고서/검증 트리거 쓰기 후 `hallucination_guard.mjs → verify_report.py` 재실행. FAIL이면 `verify_report.py`가 금지 문구/근거 없는 해시를 보고. 호스트 FAIL_CLOSED 지원 시 후속 제출 차단.
+> ⚠️ **이 도구가 아닌 것**: 증거 획득 도구도, 법원 제출 적격성을 보장하는 스위트도 아니다
+> (**not a forensic acquisition or court-admissibility suite**). 판단과 획득은 별도 검증된
+> 도구/분석가의 몫이며, 이 플러그인은 "확인되지 않은 것은 `미확인`으로 비워 둔다"는
+> fail-closed 원칙으로 초안을 만든다. 한계 목록은 [`docs/GAPS.md`](docs/GAPS.md).
 
 ---
 
-## 🛠️ 빠른 시작
+## 요구 사항
 
-```powershell
-# 1. DFIR 외부 바이너리(Hayabusa, Chainsaw, EZ-Tools) 별도 설치 — 선택, 미포함
-powershell -ExecutionPolicy Bypass -File scripts/download_dfir_binaries.ps1
-# 다운로드 후 SHA256 직접 검증 필요
+| 구분 | 필수 여부 | 비고 |
+| :--- | :--- | :--- |
+| Python 3.10+ | 필수 (핵심 스크립트) | macOS/Linux/Windows 모두 동작. `python`이 없으면 `python3`로 읽어 실행 |
+| Node 18+ | 필수 (훅·법령 MCP 래퍼) | `python`이 없으면 검증 게이트는 경고 후 통과(비활성) |
+| ffmpeg / ffprobe | 영상 스킬만 | `brew install ffmpeg` / `winget install Gyan.FFmpeg` |
+| Hayabusa·Chainsaw·EZ-Tools·Dissect·MemProcFS | 선택 (BYO 래퍼) | **미포함** — 있을 때만 해당 분석이 활성화됨 |
+| Google Antigravity | 선택 (전체 기능) | 없으면 아래 "스크립트만 단독 사용" 경로 |
 
-# 2. EVTX 위협 헌팅 — 게이트 통과 시에만
-python scripts/check_tool.py hayabusa.exe
-hayabusa.exe csv-timeline -d “C:\Evidence\Logs” -o “C:\Output\timeline.csv”
+> 기본 사용 분위기는 **Windows**다(EVTX/MFT/MemProcFS 계열 도구가 Windows 네이티브).
+> macOS/Linux에서도 카카오 파싱·타임라인·해시·검증 체인은 완전히 동작한다(직접 검증됨).
 
-# 3. Dissect 래퍼 — dissect 설치 시 (pip install dissect)
-python scripts/parse_ntfs_artifacts.py “disk.raw” --artifact prefetch --output prefetch.json
+## 설치
 
-# 4. 카카오톡 텍스트 내보내기 & 타임라인
-python skills/kakao-chat-extractor/scripts/parse_kakao.py “카카오톡_대화.txt” --output parsed.json
-python skills/forensic-timeline/scripts/generate_timeline.py --input events.json --output timeline.html
+### A. Antigravity 플러그인으로 (권장 — 스킬 라우팅 + 무결성 훅 포함)
 
-# 5. 검증 체인 — 해시 근거 생성 → 보고서 검증
-python skills/forensic-audit/scripts/audit_timestamps.py “증거파일” --json > audit.json
-python scripts/verify_report.py “감정서초안.md” --evidence audit.json --json
+저장소를 클론한 뒤 Antigravity에 플러그인으로 등록한다(`plugin.json` 매니페스트: `skills/`, `hooks/`, `mcpServers/` 등록). 이 경로에서만 다음이 자동으로 작동한다.
+
+- 세션 시작 시 `GEMINI.md` 호스트 계약 주입 (`SessionStart` 훅)
+- 증거 파일 쓰기 차단 시도 (`PreToolUse`, best-effort)
+- 산출물 SHA-256 감사 로그 + 보고서 검증 게이트 (`PostToolUse`)
+
+### B. 스크립트만 단독 사용 (호스트 없이 CLI로)
+
+호스트가 없어도 스크립트는 그대로 쓸 수 있다. 단, 훅과 스킬 라우팅은 없으므로 검증을
+수동으로 실행해야 한다.
+
+```bash
+git clone https://github.com/daeryundf2-prog/lazyforensic- && cd lazyforensic-
+python -m unittest discover -s test   # 환경 점검 겸 77개 테스트 (수 초)
 ```
+
+## 법령 조회 (선택 — 한국법 MCP)
+
+법령·판례 인용 검증용 MCP 서버가 번들되어 있다. **키가 없으면 서버가 조용히 비활성**되고
+조문을 날조하지 않는다(fail-closed). 쓰려면:
+
+1. 국가법령정보센터(law.go.kr) 오픈API에서 **서비스 인증키**를 발급받는다.
+2. 빌드 (최초 1회 — `node_modules` **약 680MB** 생성, 네트워크에 따라 수 분):
+   ```bash
+   node scripts/setup_korean_law.mjs   # npm install --ignore-scripts + build + 검증
+   ```
+3. 키 설정:
+   ```bash
+   cp .env.example .env        # .env 에 LAW_OC=<발급받은 인증키> 기입
+   ```
+   키는 콘솔/로그에 출력되지 않는다.
+
+빌드가 없거나 키가 없으면 `node scripts/korean_law_mcp.mjs`가 exit 78 + 안내 메시지로 끝나고,
+스킬은 "조문을 만들지 않는다"는 원칙만 남는다.
+
+## 5분 워크플로 (실측 예시)
+
+카카오톡 텍스트 내보내기 1장으로 끝까지 가는 최소 여정 — 아래 명령은 그대로 복붙해 동작한다.
+
+```bash
+# 0. 사례 폴더에 증거 텍스트를 둔다 (카카오톡 대화방 메뉴에서 텍스트로 내보낸 파일)
+cp "카카오톡_대화내용.txt" case/
+
+# 1. 대화 파싱 (모바일/PC 포맷 자동 판별, UTF-8/CP949/UTF-16)
+python skills/kakao-chat-extractor/scripts/parse_kakao.py case/카카오톡_대화내용.txt --output case/parsed.json
+
+# 2. 파싱 결과 → events.json (LLM에게 "parsed.json을 events.json으로 변환해줘"로 시켜도 됨)
+#    {"timestamp": "2024-01-16 14:15:00", "description": "...", "category": "chat"} 배열
+
+# 3. 타임라인 HTML (외부 의존 0 — 파일 하나를 브라우저로 열면 끝)
+python skills/forensic-timeline/scripts/generate_timeline.py --input case/events.json --output case/timeline.html
+
+# 4. 원본 파일 해시 감사 → audit.json (검증의 근거가 된다)
+python skills/forensic-audit/scripts/audit_timestamps.py case/카카오톡_대화내용.txt --json > case/audit.json
+
+# 5. 보고서 초안 작성 후 검증 — 근거 없는 해시/금지 문구는 FAIL
+python scripts/verify_report.py case/감정서초안.md --evidence case/audit.json --json
+```
+
+검증기가 잡는 것 (실제 동작 확인):
+
+- 근거 없는 SHA-256/MD5 → `FAIL (근거 없는 해시 N개)`
+- `명백히 입증`, `법원에 유효`, `court-admissible` 등 과단정 문구 → `FAIL`
+- 부정 문맥(`유출의심 아님`, `조작 가능성을 배제할 수 없다`)은 오탈 차단하지 않음
+- 인코딩이 UTF-16(Windows PowerShell 기본 출력)이어도 금지 문구를 읽어 낸다
+
+## 무엇이 지원되고 무엇이 아닌가
+
+| 요청 | 상태 | 조건 |
+| :--- | :--- | :--- |
+| 카카오톡 텍스트 내보내기 파싱 (모바일/PC) | ✅ | 텍스트 내보내기만. SQLite/백업 DB ❌ |
+| 타임라인 HTML 렌더 (XSS 이스케이프, 샘플 거부) | ✅ | events.json 필요 |
+| 파일 MAC 시각 + SHA-256/MD5 감사 | ✅ | `os.stat` 표면값. `$MFT`/Timestomping 판정 ❌ |
+| 보고서 초안 검증 (금지 문구/해시 grounding) | ✅ | 해시-파일 결합 오류는 잡지 못함 |
+| EVTX 헌팅 (Hayabusa/Chainsaw) | 🟡 BYO | `python scripts/check_tool.py hayabusa.exe` 통과 시에만 |
+| MFT/Prefetch/Shimcache (Dissect/EZ-Tools) | 🟡 BYO | 실패 시 `error` 필드 + exit 3 ("0건" 위장 없음) |
+| 메모리 덤프 (MemProcFS/Volatility 3) | 🟡 BYO | 덤프+도구 모두 있을 때만 |
+| 영상 프레임/메타데이터 감사 | ✅ | ffmpeg 필요 — `setup.py --check`로 확인 |
+| 영상 대화록(Whisper) | 🔒 동의 필요 | `--upload-audio` 명시 동의 없이 외부 전송 금지 |
+| 법령/판례 조회 | 🟡 키 필요 | 위 "법령 조회" 참고 |
+| 무결성 훅 (쓰기 차단/감사 로그) | 🟡 Antigravity | best-effort. OS 읽기전용(`chmod 444`) 병행 권장 |
+
+## 트러블슈팅
+
+- **증개 가드에 쓰기가 막힌다**: 사본도 같은 확장자(`.raw`, `.E01`)면 차단된다. 사본은
+  `img.raw.analysis.txt`처럼 확장자를 바꾸거나 `evidence/` 밖에서 작업하라.
+- **`korean_law`가 exit 78**: 빌드(`setup_korean_law.mjs`)와 `LAW_OC` 키 둘 중 하나가 없다.
+  메시지가 어느 쪽인지 알려 준다. **키가 없다고 조문을 만들어내지 않는다** — 정상 동작이다.
+- **영상 스킬이 조용히 안 될 때**: `python skills/forensic-video/scripts/setup.py --check` —
+  무엇이 없는지 + 플랫폼별 설치 명령을 출력한다.
+- **Windows에 python이 없어서**: 검증 게이트가 경고 후 통과한다(비활성). `python3` 설치를 권장.
+- **카카오톡 파일이 깨져 보인다**: UTF-8/CP949/UTF-16을 자동 판별한다. 그래도 실패하면
+  모바일 앱에서 텍스트로 재내보내기하고, 파일을 다른 인코딩으로 재저장하지 말 것.
+
+## 정직 선언 / 아키텍처
+
+- **[`docs/GAPS.md`](docs/GAPS.md)** — 구현하지 않은 능력 목록 (광고-구현 차이 고정)
+- **[`GEMINI.md`](GEMINI.md)** — Antigravity 호스트 계약, 스킬 라우팅, 실패 폐쇄 규칙
+- **[`docs/USER_GUIDE.md`](docs/USER_GUIDE.md)** — 요청 문구별 사용 예시
+- 검증 게이트의 정체: `PostToolUse` **사후 게이트**다. 파일이 쓰인 뒤 검증하며, 호스트가
+  `failurePolicy: FAIL_CLOSED`(exit 1)을 지원할 때 후속 제출이 막힌다. 우회 경로는 GAPS.md에 기록.
 
 ## 테스트 / CI
 
 ```bash
-python -m unittest discover -s test -v   # 파서·검증기·훅 가드 회귀 테스트
+python -m unittest discover -s test -v   # 파서·검증기·훅 가드 77개 회귀 테스트
 ```
-`.github/workflows/ci.yml`: Ubuntu/Windows에서 유닛 테스트 + 훅 가드 단언, korean-law-mcp 빌드+vitest.
+`.github/workflows/ci.yml`: Ubuntu/Windows 유닛 테스트 + 훅 가드 단언, korean-law-mcp 빌드+vitest.
 
+## 라이선스
+
+본 레포 코드는 MIT ([`LICENSE`](LICENSE)). `korean-law-mcp/`는 상위 MIT 라이선스를 그대로 따른다
+([`NOTICE`](NOTICE)). 무라이선스 제3자 디자인 카탈로그(mengto-skills, design-systems 등)는
+배포 리스크 때문에 제거되어 있다 — 자세한 사유는 [`NOTICE`](NOTICE)와 [`docs/GAPS.md`](docs/GAPS.md).

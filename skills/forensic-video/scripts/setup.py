@@ -67,37 +67,37 @@ def get_status() -> dict:
 
 
 def main():
-    if "--check" in sys.argv:
-        status = get_status()
-        if status["can_proceed"]:
-            sys.exit(0)
-        else:
-            sys.exit(2)
-
-    if "--json" in sys.argv:
-        print(json.dumps(get_status(), indent=2))
-        return
-
+    as_json = "--json" in sys.argv
     status = get_status()
-    print("=" * 60)
-    print("  [LazyForensic] Forensic Video Analysis Preflight")
-    print("=" * 60)
-    print(f"  OS Platform      : {status['platform']}")
-    print(f"  Installed Tools  : {', '.join(status['found_binaries']) or 'None'}")
-    if status["missing_binaries"]:
-        print(f"  [!] Missing Tools : {', '.join(status['missing_binaries'])}")
-        print("-" * 60)
-        print("  [권장 설치 명령어]")
-        if platform.system() == "Windows":
-            print("  - winget install Gyan.FFmpeg")
-            print("  - python -m pip install yt-dlp")
-        elif platform.system() == "Darwin":
-            print("  - brew install ffmpeg yt-dlp")
-        else:
-            print("  - sudo apt install ffmpeg && pip install yt-dlp")
+
+    if as_json:
+        print(json.dumps(status, indent=2))
     else:
-        print("  [OK] All required video analysis tools (ffmpeg, ffprobe, yt-dlp) are ready!")
-    print("=" * 60)
+        print("=" * 60)
+        print("  [LazyForensic] Forensic Video Analysis Preflight")
+        print("=" * 60)
+        print(f"  OS Platform      : {status['platform']}")
+        print(f"  Installed Tools  : {', '.join(status['found_binaries']) or 'None'}")
+        if status["missing_binaries"]:
+            print(f"  [!] Missing Tools : {', '.join(status['missing_binaries'])}")
+            print("-" * 60)
+            print("  [권장 설치 명령어]")
+            if platform.system() == "Windows":
+                print("  - winget install Gyan.FFmpeg")
+                print("  - python -m pip install yt-dlp")
+            elif platform.system() == "Darwin":
+                print("  - brew install ffmpeg yt-dlp")
+            else:
+                print("  - sudo apt install ffmpeg && pip install yt-dlp")
+        else:
+            print("  [OK] All required video analysis tools (ffmpeg, ffprobe, yt-dlp) are ready!")
+        if not status["has_api_keys"]:
+            print("  [i] Whisper 대화록(API 업로드)을 쓰려면 GROQ/OPENAI/GEMINI 키 설정 — 키 없으면 로컬 처리만 가능")
+        print("=" * 60)
+
+    # --check 도 리포트를 출력한 뒤 종료 코드로 판정한다 (조용한 실패 금지)
+    if "--check" in sys.argv:
+        sys.exit(0 if status["can_proceed"] else 2)
 
 
 if __name__ == "__main__":
