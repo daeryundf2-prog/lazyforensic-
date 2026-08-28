@@ -1,149 +1,275 @@
 #!/usr/bin/env node
 /**
  * evidence_guard.mjs - PreToolUse 증거 무결성 보호(Write-Lock) 및 PostToolUse 해시 체크포인트 훅
- * Antigravity 호환: stdin JSON (tool_input) + 환경변수 모두 검사, best-effort 가드.
- * 실제 파일시스템 강제 잠금이 아니며, 증거 디렉토리는 OS 수준에서 읽기전용으로 두어야 한다.
+ * Antigravity 호환: stdin JSON (tool_input) + 환경변수 + CLI 인자를 각각 독립 수집.
+ *
+ * stdin 규약: 호스트가 JSON을 쓰고 파이프를 닫는다고 가정하고 1.5초 데드라인으로 비동기 읽는다.
+ * (fstat().size 는 POSIX 파이프에서 정의되지 않아 Linux/Windows 에서 항상 0이므로 유무 판정에 쓰지 않는다)
+ *
+ * exit 규약: 차단=1, 통과=0. 이 훅이 실제로 차단하려면 호스트가 hooks.json 의
+ * failurePolicy: FAIL_CLOSED 로 exit 1 을 쓰기 차단으로 해석해야 한다 (미해석 시 best-effort).
+ *
+ * 한계 (docs/GAPS.md 참고): 실제 파일시스템 강제 잠금이 아니며, 호스트가 훅 stdin 을 주지
+ * 않거나 매칭되지 않는 도구/우회 경로는 막을 수 없다. 증거 디렉토리는 OS 수준 읽기전용 병행.
  */
 
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import { stdin } from 'node:process';
 
 const hookType = (process.argv[2] || 'pre-tool-use').replace(/_/g, '-');
 
+// ---------------------------------------------------------------------------
+// 입력 수집: 각 소스를 독립 보관 (JSON.parse 는 소스별로 따로 시도한다 —
+// 서로 다른 소스를 '\n'으로 합쳐 파싱하면 어느 한쪽만 있어도 파싱이 깨진다)
+// ---------------------------------------------------------------------------
+
+function readStdin(limitMs) {
+	return new Promise((resolve) => {
+		if (stdin.isTTY) {
+			resolve('');
+			return;
+		}
+		const chunks = [];
+		let settled = false;
+		const finish = (value) => {
+			if (settled) return;
+			settled = true;
+			clearTimeout(timer);
+			stdin.removeAllListeners();
+			resolve(value);
+		};
+		const timer = setTimeout(() => finish(Buffer.concat(chunks).toString('utf8')), limitMs);
+		stdin.on('data', (chunk) => chunks.push(chunk));
+		stdin.on('end', () => finish(Buffer.concat(chunks).toString('utf8')));
+		stdin.on('error', () => finish(''));
+	});
+}
+
+function tryParseJson(text) {
+	if (!text) return undefined;
+	const t = text.trim();
+	if (!t.startsWith('{') && !t.startsWith('[')) return undefined;
+	try {
+		return JSON.parse(t);
+	} catch {
+		return undefined;
+	}
+}
+
+// tool_input 에서 경로/명령에 해당하는 키의 문자열 값만 수집한다.
+// content/쓰기 본문은 스캔하지 않는다 — 보고서 본문에 "evidence/", "image.raw" 가
+// 언급되는 것만으로 쓰기가 차단되는 과차단을 막기 위함이다.
+const PATHISH_KEY_RE = /^(file_path|filepath|file|filename|target|output|path|command|cmd|command_line|commandline|script|args)$/i;
+
+function deepCollectPathish(node, out) {
+	if (Array.isArray(node)) {
+		for (const item of node) deepCollectPathish(item, out);
+		return;
+	}
+	if (!node || typeof node !== 'object') return;
+	for (const [key, value] of Object.entries(node)) {
+		if (typeof value === 'string') {
+			if (PATHISH_KEY_RE.test(key)) out.push(value);
+		} else if (value && typeof value === 'object') {
+			deepCollectPathish(value, out);
+		}
+	}
+}
+
+async function collectSources() {
+	const sources = [];
+	const push = (text, label) => {
+		if (text) sources.push({ text, parsed: tryParseJson(text), label });
+	};
+	// 1) 환경변수 (레거시/테스트 호환)
+	for (const k of ['ANTIGRAVITY_TOOL_INPUT', 'TOOL_INPUT', 'ANTIGRAVITY_TARGET_FILE', 'TARGET_FILE']) {
+		if (process.env[k]) push(process.env[k], `env:${k}`);
+	}
+	// 2) stdin JSON (Antigravity 실제 경로)
+	push(await readStdin(1500), 'stdin');
+	// 3) CLI 인자로 전달된 JSON/경로 (일부 호스트)
+	for (const arg of process.argv.slice(3)) push(arg, 'argv');
+	return sources;
+}
+
+// 패턴 검사 대상 문자열: 경로/명령 성격의 값들 + JSON이 아닌 원문 (env 단순 경로 등)
+function scanStrings(sources) {
+	const out = [];
+	for (const s of sources) {
+		if (s.parsed !== undefined) {
+			deepCollectPathish(s.parsed, out);
+			// JSON 파싱에 성공하면 원문은 재검사하지 않는다 (content 과차단 방지)
+		} else {
+			out.push(s.text);
+		}
+	}
+	return out;
+}
+
+// 확장자 검사용 토큰: 공백/인용부호로 끊고 뒤에 붙은 문장부호를 제거
+function pathTokens(texts) {
+	const tokens = [];
+	for (const text of texts) {
+		for (const raw of String(text).split(/[\s"'`]+/)) {
+			const token = raw.replace(/[,;:)\]]+$/, '');
+			if (token) tokens.push(token);
+		}
+	}
+	return tokens;
+}
+
+// ---------------------------------------------------------------------------
+// 보호 패턴
+// ---------------------------------------------------------------------------
+
+const PROTECTED_EXTENSIONS = /\.(raw|dd|dmp|e01|ex01|evtx|evtxc)$/i;
+// evidence 를 경로 세그먼트로 포함하는 토큰 (cp x evidence/ 같은 상대 경로 쓰기 포함).
+// evidence_note.md 처럼 evidence 로 시작하는 다른 이름은 세그먼트가 아니므로 통과.
+const EVIDENCE_SEGMENT_RE = /^(?:.*[\/\\])?evidence(?:[\/\\].*)?$/i;
+const PROTECTED_PATTERNS = [
+	{ re: /(^|\/|\\)evidence(\/|\\|$)/i, label: 'evidence directory' },
+	{ re: /\$mft/i, label: '$MFT' },
+	{ re: /\$logfile/i, label: '$Logfile' },
+	{ re: /\$usnjrnl/i, label: '$UsnJrnl' },
+	{ re: /\/dev\/.*(sda|nvme|rdisk)/i, label: 'raw block device' },
+];
+
+function findViolation(texts) {
+	for (const text of texts) {
+		for (const { re, label } of PROTECTED_PATTERNS) {
+			if (re.test(text)) return `pattern ${label}`;
+		}
+	}
+	for (const token of pathTokens(texts)) {
+		if (PROTECTED_EXTENSIONS.test(token)) return `protected extension: ${path.basename(token)}`;
+		if (EVIDENCE_SEGMENT_RE.test(token)) return 'evidence directory';
+	}
+	return null;
+}
+
+// ---------------------------------------------------------------------------
+// PostToolUse: 대상 파일 추정 (환경변수 > JSON 경로 키 > 유니코드 경로 정규식 > argv)
+// ---------------------------------------------------------------------------
+
+const TARGET_KEY_RE = /^(file_path|filepath|target|output)$/i;
+// \S 기반이므로 한글/공백 포함 경로도 매칭된다 (구버전 [\w\-\.] 은 ASCII 한정이었다)
+const PATH_LIKE_RE = /([^\s"'`<>|;&]+[\/\\][^\s"'`<>|;&]+\.(?:md|html|txt|json|csv|png|mp4))/i;
+const REDIRECT_RE = /(?:>|>>)\s*([^\s|&;]+(?:\.(?:md|html|txt|json)))/i;
+
+function extractTargetFromNode(node, out) {
+	if (Array.isArray(node)) {
+		for (const item of node) extractTargetFromNode(item, out);
+		return;
+	}
+	if (!node || typeof node !== 'object') return;
+	for (const [key, value] of Object.entries(node)) {
+		if (typeof value === 'string' && TARGET_KEY_RE.test(key) && value) out.push(value);
+		else if (value && typeof value === 'object') extractTargetFromNode(value, out);
+	}
+}
+
+function extractTarget(sources) {
+	for (const s of sources) {
+		if (s.parsed !== undefined) {
+			const found = [];
+			extractTargetFromNode(s.parsed, found);
+			if (found.length > 0) return found[0];
+		}
+	}
+	// JSON 이 아닌 원문: 리다이렉트(bash) 우선, 그 다음 일반 경로
+	for (const s of sources) {
+		if (s.parsed !== undefined) continue;
+		const red = s.text.match(REDIRECT_RE);
+		if (red) return red[1];
+		const m = s.text.match(PATH_LIKE_RE);
+		if (m) return m[1];
+	}
+	return '';
+}
+
+// ---------------------------------------------------------------------------
+// SHA-256 (스트리밍 — 큰 파일을 통째로 메모리에 올리지 않는다)
+// ---------------------------------------------------------------------------
+
 function calculateSha256(filePath) {
-  try {
-    const fileBuffer = fs.readFileSync(filePath);
-    const hashSum = crypto.createHash('sha256');
-    hashSum.update(fileBuffer);
-    return hashSum.digest('hex');
-  } catch (err) {
-    return null;
-  }
+	return new Promise((resolve) => {
+		const hash = crypto.createHash('sha256');
+		const stream = fs.createReadStream(filePath, { highWaterMark: 1024 * 1024 });
+		stream.on('data', (chunk) => hash.update(chunk));
+		stream.on('end', () => resolve(hash.digest('hex')));
+		stream.on('error', () => resolve(null));
+	});
 }
 
-function readStdinSync() {
-  try {
-    // Antigravity는 hook에 stdin으로 JSON을 전달한다. 동기 읽기로 200ms 내 폴링.
-    const fd = 0;
-    const buf = Buffer.alloc(65536);
-    // 비차단 읽기 시도 — TTY면 빈 문자열
-    if (process.stdin.isTTY) return '';
-    // stdin이 이미 닫혔거나 데이터가 없으면 빈 문자열
-    let data = '';
-    try {
-      // Node 18+ fs.readFileSync(0) 는 stdin 전체를 읽는다 (데이터가 있을 때만 블록)
-      // 타임아웃을 위해 짧게 시도: 이미 파이프된 데이터만 읽음
-      const stat = fs.fstatSync(fd);
-      if (stat.size === 0) {
-        // 파이프 데이터가 없으면 환경변수로 폴백
-        return '';
-      }
-      data = fs.readFileSync(fd, 'utf-8');
-    } catch {
-      return '';
-    }
-    return data;
-  } catch {
-    return '';
-  }
+const MAX_AUDIT_BYTES = 2 * 1024 * 1024 * 1024; // 2GiB 초과는 해시 대신 skip 기록
+
+// ---------------------------------------------------------------------------
+
+async function main() {
+	const sources = await collectSources();
+
+	if (hookType === 'pre-tool-use') {
+		const texts = scanStrings(sources);
+		const violation = findViolation(texts);
+		if (violation) {
+			console.error(`[FORENSIC INTEGRITY GUARD] Write operation BLOCKED — ${violation}`);
+			console.error('[HINT] Evidence files are read-only. 사본도 같은 확장자(.raw/.E01 등)면 차단된다 —');
+			console.error('       사본은 확장자를 바꿔 보관(예: img.raw → img.raw.analysis.txt)하거나 증거 디렉토리 밖에서 작업.');
+			console.error('       이것은 best-effort 가드다. 증거 디렉토리는 OS 읽기전용(chmod 444)을 병행할 것.');
+			process.exit(1);
+		}
+		process.exit(0);
+	}
+
+	if (hookType === 'post-tool-use') {
+		const targetFile = extractTarget(sources);
+		if (!targetFile || !fs.existsSync(targetFile)) {
+			process.exit(0);
+		}
+
+		// 감사 로그는 케이스 격리: <cwd>/.lazyforensic/audit_trail.jsonl 단일 파일.
+		// (구버전이 만든 cwd 루트 audit_trail.jsonl 미러는 두 체인 로그가 갈라지므로 폐지)
+		const resolvedTarget = path.resolve(targetFile);
+		let auditLogPath = null;
+		try {
+			const auditDir = path.resolve(process.cwd(), '.lazyforensic');
+			fs.mkdirSync(auditDir, { recursive: true });
+			auditLogPath = path.join(auditDir, 'audit_trail.jsonl');
+		} catch {
+			process.exit(0); // 로그를 못 만들면 감사 기록도 없다 — 조용히 통과(FAIL_OPEN 훅)
+		}
+
+		let stat = null;
+		try {
+			stat = fs.statSync(resolvedTarget);
+		} catch {
+			process.exit(0);
+		}
+
+		const entry = {
+			timestamp: new Date().toISOString(),
+			file: resolvedTarget,
+			sha256: null,
+			sizeBytes: stat.size,
+			hook: 'post-tool-use',
+			note: 'best-effort SHA-256 checkpoint; not a chain-of-custody proof',
+		};
+		if (stat.size > MAX_AUDIT_BYTES) {
+			entry.note = 'hash skipped: file exceeds 2GiB audit limit (absence of a hash here is a deliberate skip, not a failure)';
+		} else {
+			entry.sha256 = await calculateSha256(resolvedTarget);
+		}
+		if (entry.sha256 || stat.size > MAX_AUDIT_BYTES) {
+			try {
+				fs.appendFileSync(auditLogPath, JSON.stringify(entry) + '\n', 'utf8');
+			} catch {}
+		}
+		process.exit(0);
+	}
+
+	process.exit(0);
 }
 
-function collectRawInput() {
-  const parts = [];
-  // 1) 환경변수 (레거시/테스트 호환)
-  if (process.env.ANTIGRAVITY_TOOL_INPUT) parts.push(process.env.ANTIGRAVITY_TOOL_INPUT);
-  if (process.env.TOOL_INPUT) parts.push(process.env.TOOL_INPUT);
-  if (process.env.ANTIGRAVITY_TARGET_FILE) parts.push(process.env.ANTIGRAVITY_TARGET_FILE);
-  if (process.env.TARGET_FILE) parts.push(process.env.TARGET_FILE);
-  // 2) stdin JSON (Antigravity 실제 경로)
-  const stdinRaw = readStdinSync();
-  if (stdinRaw) parts.push(stdinRaw);
-  // 3) CLI 인자로 전달된 JSON (일부 호스트)
-  for (const arg of process.argv.slice(3)) parts.push(arg);
-  return parts.join('\n');
-}
-
-if (hookType === 'pre-tool-use') {
-  // 1. PreToolUse: 원본 포렌식 증거 파일 쓰기 시도 차단 (best-effort)
-  const rawInput = collectRawInput();
-  // 확장자 + 경로 패턴 + $MFT 변형 + 대용량 이미지 시그니처
-  const protectedPatterns = [
-    /\.raw$/im, /\.dd$/im, /\.dmp$/im, /\.e01$/im, /\.ex01$/im, /\.evtx$/im, /\.evtxc$/im,
-    /\\evidence\\/i, /\/evidence\//i, /(^|\/|\\)evidence(\/|\\|$)/i,
-    /\$mft/i, /\$logfile/i, /\$usnjrnl/i,
-    /\/dev\/.*(sda|nvme|rdisk)/i,
-  ];
-
-  let blocked = null;
-  for (const pattern of protectedPatterns) {
-    if (pattern.test(rawInput)) {
-      blocked = pattern;
-      break;
-    }
-  }
-  if (blocked) {
-    console.error(`[FORENSIC INTEGRITY GUARD] Write operation BLOCKED on protected forensic artifact matching: ${blocked}`);
-    console.error(`[HINT] Evidence files are read-only. Work on a copy in output/ or /tmp. This is a best-effort guard — also set OS read-only (chmod 444) on evidence/.`);
-    // FAIL_CLOSED: 호스트가 exit 1을 차단 신호로 해석
-    process.exit(1);
-  }
-  // 통과 시에도 감사 로그에 기록하지 않음
-  process.exit(0);
-} else if (hookType === 'post-tool-use') {
-  // 2. PostToolUse: 산출물 생성 시 SHA-256 감사 로그 자동 기록
-  const rawInput = collectRawInput();
-  // 대상 파일 추정: 환경변수 > stdin JSON 내 file_path/target/output
-  let targetFile = process.env.ANTIGRAVITY_TARGET_FILE || process.env.TARGET_FILE || '';
-  if (!targetFile && rawInput) {
-    try {
-      const parsed = JSON.parse(rawInput);
-      targetFile = parsed.tool_input?.file_path || parsed.tool_input?.target || parsed.tool_input?.output || parsed.file_path || '';
-      if (!targetFile && typeof parsed === 'string') targetFile = parsed;
-    } catch {
-      // rawInput이 JSON이 아니면 경로 추출 시도
-      const m = rawInput.match(/([\/\\][\w\-\.\/\\]+\.(html|json|csv|txt|png|mp4))/i);
-      if (m) targetFile = m[1];
-    }
-  }
-
-  // 감사 로그는 케이스 격리: .lazyforensic/audit_trail.jsonl 우선, 없으면 audit_trail.jsonl
-  const auditDir = path.resolve(process.cwd(), '.lazyforensic');
-  let auditLogPath = path.resolve(process.cwd(), 'audit_trail.jsonl');
-  try {
-    if (!fs.existsSync(auditDir)) fs.mkdirSync(auditDir, { recursive: true });
-    auditLogPath = path.join(auditDir, 'audit_trail.jsonl');
-  } catch {
-    // mkdir 실패 시 cwd 폴백
-  }
-
-  if (targetFile && fs.existsSync(targetFile)) {
-    try {
-      const stat = fs.statSync(targetFile);
-      // 2GB 이상은 해시 생략 (메모리 보호)
-      if (stat.size > 2 * 1024 * 1024 * 1024) {
-        process.exit(0);
-      }
-      const hash = calculateSha256(targetFile);
-      if (hash) {
-        const entry = {
-          timestamp: new Date().toISOString(),
-          file: path.resolve(targetFile),
-          sha256: hash,
-          sizeBytes: stat.size,
-          hook: 'post-tool-use',
-          note: 'best-effort SHA-256 checkpoint; not a chain-of-custody proof',
-        };
-        fs.appendFileSync(auditLogPath, JSON.stringify(entry) + '\n', 'utf8');
-        // 레거시 경로에도 미러 (기존 테스트 호환)
-        const legacyPath = path.resolve(process.cwd(), 'audit_trail.jsonl');
-        if (legacyPath !== auditLogPath) {
-          try { fs.appendFileSync(legacyPath, JSON.stringify(entry) + '\n', 'utf8'); } catch {}
-        }
-      }
-    } catch {}
-  }
-  process.exit(0);
-} else {
-  process.exit(0);
-}
+main();

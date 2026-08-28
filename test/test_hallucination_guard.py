@@ -78,14 +78,131 @@ class HallucinationGuardTests(unittest.TestCase):
 
     def test_hooks_wire_hallucination_guard_unconditional(self):
         data = json.loads((ROOT / "hooks.json").read_text(encoding="utf-8"))
-        post = data["hooks"]["PostToolUse"][0]["hooks"]
-        # must have 2 hooks now: evidence_guard + hallucination_guard
-        self.assertEqual(len(post), 2)
-        cmds = [h["command"] for h in post]
+        post = data["hooks"]["PostToolUse"]
+        first = post[0]["hooks"]
+        # 문서 쓰기 매처: evidence_guard + hallucination_guard
+        self.assertEqual(len(first), 2)
+        cmds = [h["command"] for h in first]
         self.assertTrue(any("hallucination_guard" in c for c in cmds))
-        hall = [h for h in post if "hallucination_guard" in h["command"]][0]
+        hall = [h for h in first if "hallucination_guard" in h["command"]][0]
         self.assertEqual(hall["failurePolicy"], "FAIL_CLOSED")
         self.assertIn("보고서", hall["statusMessage"])
+        # bash 매처: 리다이렉트 쓰기도 같은 게이트를 통과한다 (구버전 우회 경로)
+        bash_matchers = [g for g in post if "bash" in g["matcher"]]
+        self.assertTrue(bash_matchers)
+        bash_hall = [h for h in bash_matchers[0]["hooks"] if "hallucination_guard" in h["command"]]
+        self.assertTrue(bash_hall)
+        self.assertEqual(bash_hall[0]["failurePolicy"], "FAIL_CLOSED")
+
+    def test_negation_context_is_not_a_violation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            report = Path(tmp) / "negation.md"
+            report.write_text(
+                "이 사건은 유출의심 아님으로 본다. 조작 가능성을 배제할 수 없다.\n"
+                "다만 유출 확정이 아니다.\n",
+                encoding="utf-8",
+            )
+            proc = subprocess.run(
+                [sys.executable, str(ROOT / "scripts" / "verify_report.py"), str(report)],
+                capture_output=True, text=True, cwd=str(ROOT),
+            )
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+
+    def test_utf16_report_encoding_is_detected(self):
+        # Windows PowerShell Out-File 기본값(UTF-16)에서도 금지 문구를 잡아야 한다
+        with tempfile.TemporaryDirectory() as tmp:
+            report = Path(tmp) / "utf16.md"
+            report.write_text("판정: 법원에 유효하다.\n", encoding="utf-16")
+            proc = subprocess.run(
+                [sys.executable, str(ROOT / "scripts" / "verify_report.py"), str(report)],
+                capture_output=True, text=True, cwd=str(ROOT),
+            )
+            self.assertEqual(proc.returncode, 1)
+            self.assertIn("법원에 유효", proc.stderr)
+
+    def test_labeled_md5_hash_is_grounded(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            report = Path(tmp) / "md5.md"
+            evidence = Path(tmp) / "audit.json"
+            md5 = "d" * 32
+            report.write_text(f"MD5 (legacy): {md5}\n", encoding="utf-8")
+            evidence.write_text(json.dumps({"md5_legacy": md5}), encoding="utf-8")
+            proc = subprocess.run(
+                [sys.executable, str(ROOT / "scripts" / "verify_report.py"), str(report), "--evidence", str(evidence)],
+                capture_output=True, text=True, cwd=str(ROOT),
+            )
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+
+    def test_labeled_md5_orphan_is_blocked(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            report = Path(tmp) / "md5bad.md"
+            evidence = Path(tmp) / "audit.json"
+            report.write_text("MD5: " + "e" * 32 + "\n", encoding="utf-8")
+            evidence.write_text(json.dumps({"md5_legacy": "d" * 32}), encoding="utf-8")
+            proc = subprocess.run(
+                [sys.executable, str(ROOT / "scripts" / "verify_report.py"), str(report), "--evidence", str(evidence)],
+                capture_output=True, text=True, cwd=str(ROOT),
+            )
+            self.assertEqual(proc.returncode, 1)
+
+    def test_unlabeled_32hex_is_not_treated_as_hash(self):
+        # 무라벨 32hex(UUID 파편 등)는 해시로 취급해 오탈 차단하지 않는다
+        with tempfile.TemporaryDirectory() as tmp:
+            report = Path(tmp) / "uuid.md"
+            report.write_text("레코드 id: " + "0123456789abcdef0123456789abcdef" + "\n", encoding="utf-8")
+            proc = subprocess.run(
+                [sys.executable, str(ROOT / "scripts" / "verify_report.py"), str(report)],
+                capture_output=True, text=True, cwd=str(ROOT),
+            )
+            self.assertEqual(proc.returncode, 0)
+
+    def test_law_citation_without_source_warns_with_article(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            report = Path(tmp) / "law.md"
+            report.write_text("통신비밀보호법 제14조 제2항 위반이다.\n", encoding="utf-8")
+            proc = subprocess.run(
+                [sys.executable, str(ROOT / "scripts" / "verify_report.py"), str(report)],
+                capture_output=True, text=True, cwd=str(ROOT),
+            )
+            self.assertEqual(proc.returncode, 0)
+            self.assertIn("제14조", proc.stdout)
+
+    def test_audit_trail_jsonl_is_accepted_as_evidence(self):
+        # 이 플러그인 자신이 쓰는 .lazyforensic/audit_trail.jsonl 도 근거 파일이어야 한다
+        with tempfile.TemporaryDirectory() as tmp:
+            report = Path(tmp) / "grounded2.md"
+            trail = Path(tmp) / ".lazyforensic" / "audit_trail.jsonl"
+            trail.parent.mkdir()
+            h = "a" * 64
+            trail.write_text(json.dumps({"file": "x", "sha256": h}) + "\n", encoding="utf-8")
+            report.write_text(f"SHA-256: {h}\n", encoding="utf-8")
+            proc = subprocess.run(
+                [sys.executable, str(ROOT / "scripts" / "verify_report.py"), str(report), "--evidence", str(trail)],
+                capture_output=True, text=True, cwd=str(ROOT),
+            )
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+
+    def test_timeline_check_is_per_line_not_global(self):
+        # '미확인' 한 줄이 있다고 보고서 전체 시각 검사가 꺼지면 안 된다
+        with tempfile.TemporaryDirectory() as tmp:
+            report = Path(tmp) / "tl.md"
+            events = Path(tmp) / "events.json"
+            events.write_text(json.dumps([
+                {"timestamp": "2024-01-16 14:00:00", "description": "a"},
+            ]), encoding="utf-8")
+            report.write_text(
+                "근거 시각: 2024-01-16 14:00:00\n"
+                "추정 시각: 2024-01-16 15:00:00\n"
+                "미확인 시각: 2023-05-05 00:00:00\n",
+                encoding="utf-8",
+            )
+            proc = subprocess.run(
+                [sys.executable, str(ROOT / "scripts" / "verify_report.py"), str(report), "--timeline", str(events)],
+                capture_output=True, text=True, cwd=str(ROOT),
+            )
+            self.assertEqual(proc.returncode, 0)
+            self.assertIn("2024-01-16 15:00:00", proc.stdout)
+            self.assertNotIn("2023-05-05", proc.stdout)
 
     def test_gemini_and_router_require_verify_on_report_keywords(self):
         gemini = (ROOT / "GEMINI.md").read_text(encoding="utf-8")
