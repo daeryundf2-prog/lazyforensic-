@@ -10,7 +10,18 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SKILLS = ROOT / "skills"
 MAX_DESCRIPTION = 280
-VISIBLE_SKILL_CAP = 17
+VISIBLE_SKILL_CAP = 16
+
+# 라이선스 검증을 끝내지 못해 본 레포에서 제거된 제3자 트리 (NOTICE 참고)
+REMOVED_TREES = [
+    "mengto-skills",
+    "design-systems",
+    "vendor",
+    "skills/slopslap",
+    "skills/ui-studio",
+    "skills/design-system",
+    "skills/frontend-ui-ux",
+]
 
 
 def skill_md_files():
@@ -34,16 +45,32 @@ class GeminiCatalogTests(unittest.TestCase):
     def test_visible_skill_count_is_bounded(self):
         # given skills/ is the Antigravity picker root
         files = skill_md_files()
-        # then vendor satellites are not registered
+        # then the catalog stays inside the Flash picker budget
         self.assertEqual(len(files), VISIBLE_SKILL_CAP)
         names = {path.parent.name for path in files}
         self.assertIn("lazyforensic", names)
-        self.assertIn("ui-studio", names)
         self.assertNotIn("infographic-syntax-creator", names)
         self.assertNotIn("manim-video", names)
-        self.assertNotIn("slopslap", names)
-        self.assertNotIn("frontend-ui-ux", names)
-        self.assertNotIn("design-system", names)
+
+    def test_removed_unlicensed_trees_stay_removed(self):
+        # NOTICE 약속: 무라이선스 제3자 트리는 재유입되지 않는다
+        for rel in REMOVED_TREES:
+            self.assertFalse((ROOT / rel).exists(), rel)
+
+    def test_no_dangling_references_to_removed_trees(self):
+        # 남은 문서/스크립트가 제거된 트리를 '라이브 참조'하지 않는다
+        offenders = []
+        for base in ["GEMINI.md", "README.md", "docs", "skills", "scripts", "templates"]:
+            p = Path(ROOT / base)
+            files = [p] if p.is_file() else list(p.rglob("*")) if p.exists() else []
+            for f in files:
+                if not f.is_file() or f.suffix not in {".md", ".mjs", ".py", ".json"}:
+                    continue
+                text = f.read_text(encoding="utf-8")
+                for token in ["mengto-skills/", "design-systems/", "vendor/antv", "skills/slopslap", "ui-studio/SKILL.md"]:
+                    if token in text and "제거" not in text:
+                        offenders.append(f"{f}: {token}")
+        self.assertEqual(offenders, [])
 
     def test_descriptions_fit_flash_picker(self):
         # given every visible SKILL.md
@@ -95,16 +122,9 @@ class GeminiCatalogTests(unittest.TestCase):
         self.assertRegex(ctx, r"korean_law: (ready|missing-build|missing-LAW_OC)")
         self.assertNotIn("LAW_OC=", ctx)
 
-    def test_vendor_antv_kept_off_catalog(self):
-        vendor = ROOT / "vendor" / "antv-infographic" / "creator-full.md"
-        self.assertTrue(vendor.is_file())
-        self.assertFalse((SKILLS / "infographic-syntax-creator" / "SKILL.md").exists())
+    def test_manim_reference_stays_unregistered(self):
         self.assertTrue((SKILLS / "video-editor" / "manim-video" / "REFERENCE.md").is_file())
         self.assertFalse((SKILLS / "video-editor" / "manim-video" / "SKILL.md").exists())
-        self.assertTrue((SKILLS / "slopslap" / "REFERENCE.md").is_file())
-        self.assertFalse((SKILLS / "slopslap" / "SKILL.md").exists())
-        self.assertFalse((SKILLS / "frontend-ui-ux" / "SKILL.md").exists())
-        self.assertFalse((SKILLS / "design-system" / "SKILL.md").exists())
 
     def test_infographic_cli_fails_closed_without_input(self):
         # given no input artifact
@@ -148,34 +168,23 @@ class GeminiCatalogTests(unittest.TestCase):
             cwd=str(ROOT),
             env=env,
         )
-        # then
+        # then — 빌드 미존재 분기는 setup 안내가 정확해야 한다
         self.assertEqual(proc.returncode, 78)
         self.assertIn("disabled", proc.stderr)
-        self.assertIn("LAW_OC", proc.stderr)
+        self.assertIn("build/index.js is missing", proc.stderr)
+        self.assertIn("setup_korean_law", proc.stderr)
 
-    def test_distribution_marks_unverified_vendor_rights(self):
+    def test_distribution_notice_matches_removed_trees(self):
         notice = (ROOT / "NOTICE").read_text(encoding="utf-8")
         self.assertIn("korean-law-mcp/LICENSE", notice)
-        self.assertIn("No license file is present", notice)
-        self.assertIn("trademark", notice)
+        self.assertIn("REMOVED", notice)
+        self.assertIn("skills/slopslap/", notice)
+        self.assertIn("mengto-skills/", notice)
 
         ignored = (ROOT / ".gitignore").read_text(encoding="utf-8")
         self.assertIn("timeline_report.html", ignored)
-        self.assertIn("infographic_preview.html", ignored)
         self.assertIn("korean-law-mcp/build/", ignored)
         self.assertIn(".env", ignored)
-
-    def test_catalog_indexes_list_full_trees(self):
-        mengto = (ROOT / "mengto-skills" / "INDEX.md").read_text(encoding="utf-8")
-        brands = (ROOT / "design-systems" / "INDEX.md").read_text(encoding="utf-8")
-        antv = (ROOT / "vendor" / "antv-infographic" / "INDEX.md").read_text(encoding="utf-8")
-        self.assertIn("Do not glob", mengto)
-        self.assertIn("Do not glob", brands)
-        self.assertIn("Do not glob", antv)
-        self.assertGreaterEqual(mengto.count("`"), 127)
-        self.assertGreaterEqual(brands.count("| `"), 74)
-        self.assertIn("creator-full.md", antv)
-        self.assertIn("infographic-syntax-creator/SKILL.md", antv)
 
     def test_session_start_does_not_leak_law_key(self):
         env = os.environ.copy()
@@ -210,11 +219,10 @@ class GeminiCatalogTests(unittest.TestCase):
 
     def test_plugin_version_and_lane_copy(self):
         data = json.loads((ROOT / "plugin.json").read_text(encoding="utf-8"))
-        self.assertEqual(data["version"], "1.0.0")
+        self.assertEqual(data["version"], "1.0.1")
         self.assertIn("lanes", data["interface"]["longDescription"].lower())
         self.assertIn("not a forensic acquisition or court-admissibility suite", json.dumps(data, ensure_ascii=False).lower())
         self.assertTrue((ROOT / "docs" / "GAPS.md").is_file())
-        self.assertTrue((SKILLS / "ui-studio" / "SKILL.md").is_file())
 
     def test_help_guide_is_routed_without_expanding_picker(self):
         guide = (ROOT / "docs" / "USER_GUIDE.md").read_text(encoding="utf-8")
@@ -222,7 +230,7 @@ class GeminiCatalogTests(unittest.TestCase):
         gemini = (ROOT / "GEMINI.md").read_text(encoding="utf-8")
         self.assertIn("설명서", guide)
         self.assertIn("보고서 완성 워크플로", guide)
-        self.assertIn("디자인 검토", guide)
+        self.assertIn("인라인 CSS", guide)
         self.assertIn("generate_timeline.py --input", guide)
         self.assertIn("docs/USER_GUIDE.md", router)
         self.assertIn("docs/USER_GUIDE.md", gemini)

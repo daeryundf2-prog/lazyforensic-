@@ -1,8 +1,3 @@
-# Distribution: exclude vendor catalogs from `git archive` / lightweight distribution
-# Keep in repo for UI Studio picker, but don't bundle in archive/standalone zip
-mengto-skills/ export-ignore
-design-systems/ export-ignore
-vendor/antv-infographic/ export-ignore
 # Large optional MCP deps are local builds, not distribution artifacts
 korean-law-mcp/node_modules/ export-ignore
 korean-law-mcp/build/ export-ignore

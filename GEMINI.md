@@ -58,13 +58,13 @@ ROLE ENVELOPE: mayFinalizeRun=false; mayModifyGlobalRunState=false; mustReturn=S
 
 한 턴에 **레인 하나**만 고른다. 레인 안에서 `SKILL.md` / `REFERENCE.md` / `INDEX.md`를 **하나만** 읽는다.
 
-> **무조건 검증**: 채팅에 `보고서`/`검토해줘`/`검증해줘`/`검증`/`할루시네이션`/`할루체크`/`팩트체크`/`거짓말검사`/`사실확인`/`무결성검사`/`verify` 중 하나라도 포함되면 호스트 `PostToolUse`가 `hallucination_guard.mjs → verify_report.py`를 **무조건** 실행한다. LLM이 스킬을 스킵하고 직접 `Write`해도 차단된다 (FAIL_CLOSED). 검증 FAIL이면 파일을 수정 없이 제출 금지. 슬래시 `/verify`, `/할루체크`, `/검증` 도 동일 게이트.
+> **무조건 검증 (사후 게이트)**: 채팅 트리거(`보고서`/`검토해줘`/`검증해줘`/`검증`/`할루시네이션`/`할루체크`/`팩트체크`/`거짓말검사`/`사실확인`/`무결성검사`/`verify`)가 포함된 쓰기에는 호스트 `PostToolUse`가 `hallucination_guard.mjs → verify_report.py`를 재실행한다. 이것은 **사후 게이트**다 — 파일이 이미 쓰인 뒤 검사하며, 호스트가 `failurePolicy: FAIL_CLOSED`(exit 1)을 지원할 때 후속 제출이 차단된다. bash 리다이렉트 쓰기도 같은 게이트를 거친다. python 미설치·대상 미특정 시 경고 후 통과(스킵 경로는 `docs/GAPS.md`). 검증 FAIL이면 파일을 수정 전까지 제출 금지. 슬래시 `/verify`, `/할루체크`, `/검증` 도 동일 게이트.
 
 ### Help
 
 사용자가 `설명서`, `도움말`, `명령어 알려줘`, `무엇을 할 수 있어?`라고 하면 `docs/USER_GUIDE.md`를 읽고 기능별 요청 예시를 보여준다. 도움말 요청만으로 분석이나 파일 생성을 시작하지 않는다.
 
-### Forensic (12+4+1 — BYO binary 래퍼는 도구 있을 때만, 보고서/검토해줘/검증 계열 = 무조건 검증)
+### Forensic (13 — BYO binary 래퍼는 `check_tool.py` 게이트 통과 시에만, 보고서/검증 계열 = 무조건 검증)
 
 진입점은 `skills/lazyforensic/SKILL.md`다. BYO 래퍼는 바이너리/라이브러리 미포함이며, 없으면 결과 생성 안 함.
 
@@ -89,17 +89,14 @@ ROLE ENVELOPE: mayFinalizeRun=false; mayModifyGlobalRunState=false; mustReturn=S
 | 요청 | 파일 |
 | :--- | :--- |
 | 인포그래픽 | `skills/infographic-creator/SKILL.md` |
-| AntV 위성 | `vendor/antv-infographic/INDEX.md`에서 **하나** |
 | Manim 참고 | `video-editor`가 지시할 때만 `skills/video-editor/manim-video/REFERENCE.md` |
+| HTML 뷰어 스타일 | 외부 디자인 카탈로그 없음 — 인라인 CSS로 직접 작성 (브랜드 토큰 재배포는 라이선스상 제외됨) |
 
 ### Legal
 
 계약 서식·법령 조회는 `skills/legal-forensic-consult/SKILL.md`.  
 세션 런타임의 `korean_law`가 `ready`일 때만 `korean_law` MCP를 쓴다. `missing-build`면 `node scripts/setup_korean_law.mjs`를 안내하고 조문을 만들지 않는다. `missing-LAW_OC`면 키 설정을 안내하고 조문을 만들지 않는다. 상세 API는 필요할 때만 `korean-law-mcp/docs/API.md` **한 파일**.
 
-### UI
-
-뷰어·슬롭·브랜드 토큰은 `skills/ui-studio/SKILL.md`만 피커에서 고른다. 그 스킬이 가리키는 REFERENCE **하나**, 이어서 INDEX에서 **하나**.
-
-`mengto-skills/**`, `design-systems/**`를 glob 하지 않는다. 선택한 스킬이 지시하지 않으면 `vendor/`를 읽지 않는다.
 전체 도구 형식은 `skills/references/antigravity-tools.md`에 있다.
+
+> **제거된 카탈로그**: 무라이선스 제3자 콘텐츠(`mengto-skills/`, `design-systems/`, `vendor/`, `skills/slopslap/`, UI 피커 스킬)는 배포 라이선스 리스크 때문에 본 레포에서 제거되었다. 필요하면 별도로 라이선스를 확보한 옵션 팩으로 제공한다.

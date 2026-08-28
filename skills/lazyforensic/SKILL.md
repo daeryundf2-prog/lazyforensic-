@@ -11,9 +11,9 @@ Antigravity + Gemini 진입점. 먼저 `GEMINI.md`를 읽고, **레인 하나**�
 
 사용자가 `설명서`, `도움말`, `명령어 알려줘`, `무엇을 할 수 있어?`라고 요청하면 `../../docs/USER_GUIDE.md`를 읽고 기능별 채팅 예시와 필요한 입력을 안내한다. 기능을 실행하지 않는다.
 
-## Forensic (12+4+1 확장 — BYO 래퍼는 도구 있을 때만, 보고서/검증 계열 = 무조건 검증)
+## Forensic (13 스킬 — BYO 래퍼는 `check_tool.py` 게이트 통과 시에만, 보고서/검증 계열 = 무조건 검증)
 
-**트리거에 `보고서`/`검토해줘`/`검증해줘`/`검증`/`할루시네이션`/`할루체크`/`팩트체크`/`거짓말검사`/`사실확인`/`무결성검사`/`verify` 중 하나라도 포함되면 모든 경로는 `report-guard` + `verify_report.py` 무조건 검증을 거친다. 호스트 `PostToolUse`가 LLM 스킵 여부와 무관하게 차단한다. 슬래시 `/verify`, `/할루체크`, `/검증` 동일.**
+**트리거에 `보고서`/`검토해줘`/`검증해줘`/`검증`/`할루시네이션`/`할루체크`/`팩트체크`/`거짓말검사`/`사실확인`/`무결성검사`/`verify` 중 하나라도 포함되면 모든 경로는 `report-guard` + `verify_report.py` 무조건 검증을 거친다. 이것은 사후 게이트다 — 호스트 `PostToolUse` 훅이 LLM 스킵 여부와 무관하게 동일 검증을 재실행하고, 호스트가 FAIL_CLOSED를 지원하면 후속 제출이 막힌다. 스킵 경로는 `docs/GAPS.md`. 슬래시 `/verify`, `/할루체크`, `/검증` 동일.**
 
 | 요청 | 스킬 | 무조건 검증 |
 | :--- | :--- | :--- |
@@ -36,15 +36,11 @@ Antigravity + Gemini 진입점. 먼저 `GEMINI.md`를 읽고, **레인 하나**�
 | 요청 | 파일 |
 | :--- | :--- |
 | 인포그래픽 | `../infographic-creator/SKILL.md` |
-| AntV 위성 | `../../vendor/antv-infographic/INDEX.md`에서 **하나** |
 | Manim 참고 | `../video-editor`가 지시할 때만 `../video-editor/manim-video/REFERENCE.md` |
+| HTML 뷰어 스타일 | 외부 카탈로그 없음 — 인라인 CSS로 직접 작성 |
 
 ## Legal
 
 계약 서식·법령 조회는 `../legal-forensic-consult/SKILL.md`. 세션의 `korean_law`가 `ready`일 때만 MCP를 쓴다. 조문을 만들지 않는다.
-
-## UI
-
-뷰어·슬롭·브랜드 토큰은 `../ui-studio/SKILL.md`로 넘긴다. 이 라우터에서 `mengto-skills/**`를 읽지 않는다.
 
 병렬 작업은 `../references/antigravity-tools.md`의 `invoke_subagent`만 쓴다. `Model: "flash"` 초안, `Model: "pro"` 스크립트 출력 대조.

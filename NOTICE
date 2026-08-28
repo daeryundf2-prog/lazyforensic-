@@ -13,30 +13,15 @@ Bundled source with an included license
   Copyright: Chris
   See korean-law-mcp/LICENSE and korean-law-mcp/NOTICE.
 
-Bundled material requiring separate rights review
--------------------------------------------------
+Removed trees (license review could not be closed)
+---------------------------------------------------
 
-- skills/slopslap/
-  Stated source: vibedesignlab/slopslap
-  No license file is present in this subtree. Redistribution and commercial
-  use are not granted by the LazyForensic root license.
+The following unlicensed third-party trees were REMOVED from this repository
+before distribution: skills/slopslap/ (vibedesignlab/slopslap, no license,
+marked private upstream), design-systems/ (VoltAgent brand catalog; third-party
+trademarks), mengto-skills/ (Meng To / DesignCode catalog, no license file),
+vendor/antv-infographic/ (derived reference docs, no license file).
 
-- design-systems/
-  Stated source: VoltAgent brand DESIGN.md catalog.
-  Contains names and style descriptions associated with third-party brands.
-  The root license does not grant trademark or brand-design rights.
-
-- mengto-skills/
-  Stated source: Meng To / DesignCode skill catalog.
-  No license file is present in this subtree. Redistribution and commercial
-  use require separate review.
-
-- vendor/antv-infographic/
-  Prompt/reference material derived from the AntV Infographic ecosystem.
-  The renderer requires a separately reviewed AntV JavaScript bundle; this
-  repository does not grant rights to that bundle.
-
-Do not assume that the repository-wide MIT declaration resolves these
-third-party licensing questions. Remove or replace unverified trees before a
-public or commercial distribution if the necessary permissions cannot be
-documented.
+If you need them, obtain the rights and re-introduce them as a separately
+licensed optional pack. Do not assume this repository's MIT declaration
+grants rights over those catalogs.
