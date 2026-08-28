@@ -24,6 +24,10 @@ import json
 import re
 import sys
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 DATE_HEADER_REGEX = re.compile(r"^[-=]{2,}\s*(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일.*[-=]{2,}$")
 MOBILE_MSG_REGEX = re.compile(r"^\[(.+?)\]\s*\[(오전|오후)\s*(\d{1,2}):(\d{2})\]\s*(.*)$")
 PC_MSG_REGEX = re.compile(
@@ -211,10 +215,36 @@ def parse_kakao_file(filepath):
     return parse_kakao_text(read_kakao_text(filepath))
 
 
+def records_to_events(records):
+    """forensic-timeline 의 events.json 호환 형식으로 변환.
+
+    시각이 확정된 message/system 레코드만 옮긴다 — unparsed 와 시각 미상 레코드는
+    '근거 없는 시각'이므로 타임라인에 넣지 않는다 (fail-closed).
+    """
+    events = []
+    for r in records:
+        if r.get("type") not in ("message", "system"):
+            continue
+        ts = r.get("timestamp")
+        if not ts:
+            continue
+        sender = r.get("sender")
+        prefix = f"[{sender}] " if sender else "[시스템] "
+        events.append({
+            "timestamp": ts,
+            "description": (prefix + (r.get("message") or "")).strip(),
+            "category": "system" if r["type"] == "system" else "chat",
+        })
+    return events
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description="KakaoTalk text-export parser")
     parser.add_argument("input", help="KakaoTalk text export file")
-    parser.add_argument("--output", help="Output JSON file path")
+    parser.add_argument("--output", help="Output JSON file path (records)")
+    parser.add_argument("--events-out", dest="events_out",
+                        help="forensic-timeline 호환 events.json 출력 경로 "
+                             "(시각이 확정된 message/system 레코드만 포함)")
     parser.add_argument("--keyword", help="Filter messages containing keyword")
     args = parser.parse_args(argv)
 
@@ -243,7 +273,15 @@ def main(argv=None):
         with open(args.output, "w", encoding="utf-8") as f:
             json.dump(records, f, ensure_ascii=False, indent=2)
         print(f"[+] Saved to: {args.output}")
-    else:
+    if args.events_out:
+        events = records_to_events(records)
+        with open(args.events_out, "w", encoding="utf-8") as f:
+            json.dump(events, f, ensure_ascii=False, indent=2)
+        print(f"[+] Timeline events: {len(events)} -> {args.events_out}")
+        if not events:
+            print("[!] 시각이 확정된 레코드가 없어 타임라인 이벤트가 0건이다 — "
+                  "내보내기 파일에 날짜 헤더가 있는지 확인할 것.", file=sys.stderr)
+    if not args.output and not args.events_out:
         for r in records[:10]:
             ts = r.get("timestamp") or "시각미상"
             preview = (r.get("message") or "")[:60].replace("\n", " ")

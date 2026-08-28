@@ -16,7 +16,7 @@ class HallucinationGuardTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             report = Path(tmp) / "bad.md"
             report.write_text("명백히 입증 되었습니다. SHA256: " + "a"*64, encoding="utf-8")
-            proc = subprocess.run([sys.executable, str(ROOT / "scripts" / "verify_report.py"), str(report)], capture_output=True, text=True, cwd=str(ROOT))
+            proc = subprocess.run([sys.executable, str(ROOT / "scripts" / "verify_report.py"), str(report)], capture_output=True, text=True, encoding="utf-8", cwd=str(ROOT))
             self.assertEqual(proc.returncode, 1)
             self.assertIn("명백히 입증", proc.stderr)
 
@@ -26,7 +26,7 @@ class HallucinationGuardTests(unittest.TestCase):
             evidence = Path(tmp) / "evidence.json"
             report.write_text("해시: " + "b"*64, encoding="utf-8")
             evidence.write_text(json.dumps({"sha256": "a"*64}), encoding="utf-8")
-            proc = subprocess.run([sys.executable, str(ROOT / "scripts" / "verify_report.py"), str(report), "--evidence", str(evidence)], capture_output=True, text=True, cwd=str(ROOT))
+            proc = subprocess.run([sys.executable, str(ROOT / "scripts" / "verify_report.py"), str(report), "--evidence", str(evidence)], capture_output=True, text=True, encoding="utf-8", cwd=str(ROOT))
             self.assertEqual(proc.returncode, 1)
             self.assertIn("근거 없는 해시", proc.stderr)
 
@@ -37,7 +37,7 @@ class HallucinationGuardTests(unittest.TestCase):
             h = "c"*64
             report.write_text(f"원본 SHA-256: {h}\n비교 결과: 미측정\n미확인", encoding="utf-8")
             evidence.write_text(h, encoding="utf-8")
-            proc = subprocess.run([sys.executable, str(ROOT / "scripts" / "verify_report.py"), str(report), "--evidence", str(evidence)], capture_output=True, text=True, cwd=str(ROOT))
+            proc = subprocess.run([sys.executable, str(ROOT / "scripts" / "verify_report.py"), str(report), "--evidence", str(evidence)], capture_output=True, text=True, encoding="utf-8", cwd=str(ROOT))
             self.assertEqual(proc.returncode, 0)
 
     def test_no_skill_contains_forbidden_claim(self):
@@ -104,7 +104,7 @@ class HallucinationGuardTests(unittest.TestCase):
             )
             proc = subprocess.run(
                 [sys.executable, str(ROOT / "scripts" / "verify_report.py"), str(report)],
-                capture_output=True, text=True, cwd=str(ROOT),
+                capture_output=True, text=True, encoding="utf-8", cwd=str(ROOT),
             )
             self.assertEqual(proc.returncode, 0, proc.stderr)
 
@@ -115,7 +115,7 @@ class HallucinationGuardTests(unittest.TestCase):
             report.write_text("판정: 법원에 유효하다.\n", encoding="utf-16")
             proc = subprocess.run(
                 [sys.executable, str(ROOT / "scripts" / "verify_report.py"), str(report)],
-                capture_output=True, text=True, cwd=str(ROOT),
+                capture_output=True, text=True, encoding="utf-8", cwd=str(ROOT),
             )
             self.assertEqual(proc.returncode, 1)
             self.assertIn("법원에 유효", proc.stderr)
@@ -129,7 +129,7 @@ class HallucinationGuardTests(unittest.TestCase):
             evidence.write_text(json.dumps({"md5_legacy": md5}), encoding="utf-8")
             proc = subprocess.run(
                 [sys.executable, str(ROOT / "scripts" / "verify_report.py"), str(report), "--evidence", str(evidence)],
-                capture_output=True, text=True, cwd=str(ROOT),
+                capture_output=True, text=True, encoding="utf-8", cwd=str(ROOT),
             )
             self.assertEqual(proc.returncode, 0, proc.stderr)
 
@@ -141,7 +141,7 @@ class HallucinationGuardTests(unittest.TestCase):
             evidence.write_text(json.dumps({"md5_legacy": "d" * 32}), encoding="utf-8")
             proc = subprocess.run(
                 [sys.executable, str(ROOT / "scripts" / "verify_report.py"), str(report), "--evidence", str(evidence)],
-                capture_output=True, text=True, cwd=str(ROOT),
+                capture_output=True, text=True, encoding="utf-8", cwd=str(ROOT),
             )
             self.assertEqual(proc.returncode, 1)
 
@@ -152,7 +152,7 @@ class HallucinationGuardTests(unittest.TestCase):
             report.write_text("레코드 id: " + "0123456789abcdef0123456789abcdef" + "\n", encoding="utf-8")
             proc = subprocess.run(
                 [sys.executable, str(ROOT / "scripts" / "verify_report.py"), str(report)],
-                capture_output=True, text=True, cwd=str(ROOT),
+                capture_output=True, text=True, encoding="utf-8", cwd=str(ROOT),
             )
             self.assertEqual(proc.returncode, 0)
 
@@ -162,7 +162,7 @@ class HallucinationGuardTests(unittest.TestCase):
             report.write_text("통신비밀보호법 제14조 제2항 위반이다.\n", encoding="utf-8")
             proc = subprocess.run(
                 [sys.executable, str(ROOT / "scripts" / "verify_report.py"), str(report)],
-                capture_output=True, text=True, cwd=str(ROOT),
+                capture_output=True, text=True, encoding="utf-8", cwd=str(ROOT),
             )
             self.assertEqual(proc.returncode, 0)
             self.assertIn("제14조", proc.stdout)
@@ -178,7 +178,7 @@ class HallucinationGuardTests(unittest.TestCase):
             report.write_text(f"SHA-256: {h}\n", encoding="utf-8")
             proc = subprocess.run(
                 [sys.executable, str(ROOT / "scripts" / "verify_report.py"), str(report), "--evidence", str(trail)],
-                capture_output=True, text=True, cwd=str(ROOT),
+                capture_output=True, text=True, encoding="utf-8", cwd=str(ROOT),
             )
             self.assertEqual(proc.returncode, 0, proc.stderr)
 
@@ -198,7 +198,7 @@ class HallucinationGuardTests(unittest.TestCase):
             )
             proc = subprocess.run(
                 [sys.executable, str(ROOT / "scripts" / "verify_report.py"), str(report), "--timeline", str(events)],
-                capture_output=True, text=True, cwd=str(ROOT),
+                capture_output=True, text=True, encoding="utf-8", cwd=str(ROOT),
             )
             self.assertEqual(proc.returncode, 0)
             self.assertIn("2024-01-16 15:00:00", proc.stdout)

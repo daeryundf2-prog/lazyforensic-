@@ -22,6 +22,10 @@ import shutil
 import sys
 
 
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 def find_executable(name: str) -> str | None:
     """PATH 에서 실행 파일을 찾는다. .exe 접미사 없이 Windows 도구명을 줘도 시도한다."""
     candidates = [name]

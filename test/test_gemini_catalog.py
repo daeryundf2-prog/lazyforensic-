@@ -105,6 +105,7 @@ class GeminiCatalogTests(unittest.TestCase):
             ["node", str(ROOT / "scripts" / "session_start.mjs")],
             input=payload,
             text=True,
+
             encoding="utf-8",
             capture_output=True,
             check=False,
@@ -139,6 +140,7 @@ class GeminiCatalogTests(unittest.TestCase):
                     str(output),
                 ],
                 text=True,
+
                 encoding="utf-8",
                 capture_output=True,
                 check=False,
@@ -162,6 +164,7 @@ class GeminiCatalogTests(unittest.TestCase):
         proc = subprocess.run(
             ["node", str(ROOT / "scripts" / "korean_law_mcp.mjs")],
             text=True,
+
             encoding="utf-8",
             capture_output=True,
             check=False,
@@ -200,6 +203,7 @@ class GeminiCatalogTests(unittest.TestCase):
             ["node", str(ROOT / "scripts" / "session_start.mjs")],
             input=payload,
             text=True,
+
             encoding="utf-8",
             capture_output=True,
             check=False,

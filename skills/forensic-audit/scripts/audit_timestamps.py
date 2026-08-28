@@ -16,6 +16,10 @@ import os
 import sys
 from datetime import datetime, timezone
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 
 LIMITATIONS = (
     "os.stat() 표면값만 읽는다. $MFT $SI/$FN, Timestomping, "

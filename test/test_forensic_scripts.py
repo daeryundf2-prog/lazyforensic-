@@ -286,6 +286,35 @@ class KakaoTests(unittest.TestCase):
         )
         self.assertEqual(msgs[0]["message"], "목록\n  - 항목 1")
 
+    def test_events_out_emits_timeline_compatible_events(self):
+        # --events-out: 파싱→타임라인 수동 변환 단계를 한 명령으로
+        events = kakao.records_to_events(kakao.parse_kakao_file(str(FIXTURES / "kakao_pc_real.txt")))
+        self.assertEqual(len(events), 6)  # 메시지 5 + 시각 있는 시스템 1
+        self.assertEqual(events[0]["timestamp"], "2024-01-16 14:15:00")
+        self.assertEqual(events[0]["category"], "chat")
+        self.assertIn("[홍길동]", events[0]["description"])
+        system = [e for e in events if e["category"] == "system"]
+        self.assertEqual(len(system), 1)
+        self.assertEqual(system[0]["timestamp"], "2024-01-16 00:05:00")
+        # 시각 미상 레코드는 근거 없는 시각이므로 타임라인에 넣지 않는다
+        unknown_only = kakao.records_to_events(kakao.parse_kakao_text("[홍길동] [오후 2:15] 날짜 없음"))
+        self.assertEqual(unknown_only, [])
+
+    def test_events_out_cli_writes_file(self):
+        import io
+        from contextlib import redirect_stdout
+        with tempfile.TemporaryDirectory() as tmp:
+            out_events = Path(tmp) / "events.json"
+            buf = io.StringIO()
+            with redirect_stdout(buf):
+                code = kakao.main([str(FIXTURES / "kakao_pc_real.txt"), "--events-out", str(out_events)])
+            self.assertEqual(code, 0)
+            events = json.loads(out_events.read_text(encoding="utf-8"))
+            self.assertEqual(len(events), 6)
+            # 생성된 events.json 이 실제 타임라인 렌더러에 그대로 먹히는지 (체인 검증)
+            out_html = Path(tmp) / "timeline.html"
+            self.assertEqual(timeline.main(["--input", str(out_events), "--output", str(out_html)]), 0)
+
 
 class AuditChainTests(unittest.TestCase):
     """문서화된 검증 체인: audit_timestamps.py --json > audit.json → verify_report.py --evidence"""
@@ -321,7 +350,7 @@ class AuditChainTests(unittest.TestCase):
             proc = subprocess.run(
                 [sys.executable, str(ROOT / "scripts" / "verify_report.py"), str(report),
                  "--evidence", str(audit_json)],
-                capture_output=True, text=True, cwd=str(ROOT),
+                capture_output=True, text=True, encoding="utf-8", cwd=str(ROOT),
             )
             self.assertEqual(proc.returncode, 0, proc.stderr)
 
@@ -331,7 +360,7 @@ class AuditChainTests(unittest.TestCase):
         proc = subprocess.run(
             [sys.executable, str(ROOT / "scripts" / "parse_ntfs_artifacts.py"), str(Path(__file__)),
              "--artifact", "prefetch"],
-            capture_output=True, text=True, cwd=str(ROOT),
+            capture_output=True, text=True, encoding="utf-8", cwd=str(ROOT),
         )
         payload = json.loads(proc.stdout)
         self.assertEqual(proc.returncode, 3)
@@ -342,12 +371,12 @@ class AuditChainTests(unittest.TestCase):
         import subprocess
         ok = subprocess.run(
             [sys.executable, str(ROOT / "scripts" / "check_tool.py"), "python3"],
-            capture_output=True, text=True, cwd=str(ROOT),
+            capture_output=True, text=True, encoding="utf-8", cwd=str(ROOT),
         )
         self.assertEqual(ok.returncode, 0)
         missing = subprocess.run(
             [sys.executable, str(ROOT / "scripts" / "check_tool.py"), "no-such-binary-xyz"],
-            capture_output=True, text=True, cwd=str(ROOT),
+            capture_output=True, text=True, encoding="utf-8", cwd=str(ROOT),
         )
         self.assertEqual(missing.returncode, 2)
 

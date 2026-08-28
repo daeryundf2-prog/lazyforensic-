@@ -14,6 +14,10 @@ import json
 import argparse
 from datetime import datetime, timezone
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 MAX_RECORDS_DEFAULT = 10000
 
 
