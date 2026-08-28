@@ -64,6 +64,9 @@ def audit_video_file(filepath: str) -> dict:
     audio_stream = next((s for s in streams if s.get("codec_type") == "audio"), {})
 
     file_stat = p.stat()
+    # st_ctime 은 Windows 에선 대체로 생성시각이지만 POSIX 에선 inode 메타데이터 변경시각이다
+    # (audit_timestamps.py 의 ctime_semantics 기준과 일치)
+    ctime_semantics = "Windows creation time" if os.name == "nt" else "POSIX inode metadata change time; not file creation"
     fs_created = datetime.fromtimestamp(file_stat.st_ctime).strftime("%Y-%m-%d %H:%M:%S")
     fs_modified = datetime.fromtimestamp(file_stat.st_mtime).strftime("%Y-%m-%d %H:%M:%S")
 
@@ -75,6 +78,7 @@ def audit_video_file(filepath: str) -> dict:
         "file_size": size_bytes,
         "sha256": sha256_val,
         "fs_created": fs_created,
+        "ctime_semantics": ctime_semantics,
         "fs_modified": fs_modified,
         "container_creation_time": creation_time,
         "encoder_brand": encoder,
@@ -112,7 +116,7 @@ def main():
     print(f"  파일 크기          : {result['file_size']:,} Bytes")
     print(f"  SHA-256            : {result['sha256']}")
     print("-" * 70)
-    print(f"  파일시스템 생성일시 : {result['fs_created']}")
+    print(f"  파일시스템 생성일시 : {result['fs_created']} ({result.get('ctime_semantics', '')})")
     print(f"  파일시스템 수정일시 : {result['fs_modified']}")
     print(f"  컨테이너 태그 시각  : {result['container_creation_time']}")
     print(f"  인코더/브랜드 태그  : {result['encoder_brand']}")

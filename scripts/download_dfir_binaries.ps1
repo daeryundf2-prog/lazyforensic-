@@ -12,6 +12,17 @@ param(
 $ErrorActionPreference = "Stop"
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
+# GitHub release zip 들은 hayabusa-<ver>-win-x64/ 처럼 중첩 폴더에 exe 를 담는다.
+# 풀린 exe 를 $TargetDir 루트로 올리지 않으면 Test-Path 가 계속 실패해 매 실행 재다운로드된다.
+function Move-BinaryToRoot {
+    param([string]$Name, [string]$Dir)
+    $found = Get-ChildItem -Path $Dir -Recurse -Filter $Name -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($found -and $found.FullName -ne (Join-Path $Dir $Name)) {
+        Move-Item -Path $found.FullName -Destination (Join-Path $Dir $Name) -Force
+        Write-Host "  [i] Moved $Name to $Dir root (release zip uses a nested folder)." -ForegroundColor DarkGray
+    }
+}
+
 if (!(Test-Path $TargetDir)) {
     New-Item -ItemType Directory -Force -Path $TargetDir | Out-Null
 }
@@ -35,8 +46,11 @@ if (Test-Path $HayabusaExe) {
             $ZipPath = Join-Path $env:TEMP "hayabusa.zip"
             Invoke-WebRequest -Uri $HayaAsset.browser_download_url -OutFile $ZipPath
             Expand-Archive -Path $ZipPath -DestinationPath $TargetDir -Force
+            Move-BinaryToRoot -Name "hayabusa.exe" -Dir $TargetDir
             Remove-Item $ZipPath -Force
             Write-Host "  [✓] Hayabusa installed successfully." -ForegroundColor Green
+        } else {
+            Write-Warning "  No Hayabusa asset matched '*win-x64*.zip' in the latest release. Release naming may have changed — download manually from github.com/Yamato-Security/hayabusa."
         }
     } catch {
         Write-Warning "  Failed to download Hayabusa automatically: $_. Please download manually from github.com/Yamato-Security/hayabusa."
@@ -57,8 +71,11 @@ if (Test-Path $ChainsawExe) {
             $ZipPath = Join-Path $env:TEMP "chainsaw.zip"
             Invoke-WebRequest -Uri $ChainAsset.browser_download_url -OutFile $ZipPath
             Expand-Archive -Path $ZipPath -DestinationPath $TargetDir -Force
+            Move-BinaryToRoot -Name "chainsaw.exe" -Dir $TargetDir
             Remove-Item $ZipPath -Force
             Write-Host "  [✓] Chainsaw installed successfully." -ForegroundColor Green
+        } else {
+            Write-Warning "  No Chainsaw asset matched '*x86_64-pc-windows-msvc*.zip' in the latest release. Download manually from github.com/WithSecureLabs/chainsaw."
         }
     } catch {
         Write-Warning "  Failed to download Chainsaw automatically: $_. Please download manually from github.com/WithSecureLabs/chainsaw."
@@ -75,6 +92,8 @@ if (Test-Path $MfteExe) {
     try {
         $EzScript = Join-Path $env:TEMP "Get-ZimmermanTools.ps1"
         Invoke-WebRequest -Uri "https://raw.githubusercontent.com/EricZimmerman/Get-ZimmermanTools/master/Get-ZimmermanTools.ps1" -OutFile $EzScript
+        # 주의: 이 스크립트는 원격 스크립트를 무검증 다운로드해 실행한다. 폐쇄망/고보안 환경에서는
+        # 수동 다운로드 후 해시 대조로 대체할 것.
         & $EzScript -Dest $TargetDir
         Remove-Item $EzScript -Force
         Write-Host "  [✓] Eric Zimmerman Tools installed successfully." -ForegroundColor Green
@@ -89,7 +108,9 @@ Write-Host "    Chainsaw: https://github.com/WithSecureLabs/chainsaw/releases" -
 Write-Host "    EZ-Tools: https://ericzimmerman.github.io/#!index.md" -ForegroundColor Gray
 
 if ($VerifyHash) {
-    Write-Host "`n[VerifyHash] Computing SHA256 for downloaded binaries..." -ForegroundColor Cyan
+    # 주의: 이 스위치는 '계산'만 한다. 공식 해시와 대조하는 자동 검증이 아니다 —
+    # 아래 출력/sbom.json 을 공식 릴리스 해시와 수동 비교할 것.
+    Write-Host "`n[VerifyHash] Computing SHA256 for downloaded binaries (manual compare required)..." -ForegroundColor Cyan
     Get-ChildItem -Path $TargetDir -File -ErrorAction SilentlyContinue | ForEach-Object {
         $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash
         Write-Host ("  {0}  {1}" -f $hash.ToLower(), $_.Name) -ForegroundColor Gray

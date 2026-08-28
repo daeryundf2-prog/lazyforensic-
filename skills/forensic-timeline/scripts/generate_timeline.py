@@ -283,15 +283,16 @@ def escape_text(value):
     return html.escape(str(value), quote=True)
 
 
-MAX_EVENTS = 10000
+DEFAULT_MAX_EVENTS = 10000
 
-def load_events(path):
+
+def load_events(path, max_events=DEFAULT_MAX_EVENTS):
     with open(path, "r", encoding="utf-8") as f:
         data = json.load(f)
     if not isinstance(data, list):
         raise ValueError("input JSON must be a list of event objects")
-    if len(data) > MAX_EVENTS:
-        raise ValueError(f"too many events: {len(data)} > {MAX_EVENTS} (split input or use --max-events)")
+    if len(data) > max_events:
+        raise ValueError(f"too many events: {len(data)} > {max_events} (split input or use --max-events)")
     events = []
     for i, ev in enumerate(data):
         if not isinstance(ev, dict):
@@ -385,6 +386,12 @@ def main(argv=None):
     parser.add_argument("--title", default="디지털포렌식 시계열 타임라인", help="Report title")
     parser.add_argument("--target", default="피분석 저장매체 (PC/Mobile)", help="Target device")
     parser.add_argument(
+        "--max-events",
+        type=int,
+        default=DEFAULT_MAX_EVENTS,
+        help="Maximum number of events accepted in one input file (default: %(default)s)",
+    )
+    parser.add_argument(
         "--timezone",
         default="as provided (not converted)",
         help="Label only. This tool does not convert timestamps.",
@@ -395,7 +402,7 @@ def main(argv=None):
         return 2
 
     try:
-        events_data = load_events(args.input)
+        events_data = load_events(args.input, max_events=max(1, args.max_events))
     except (OSError, json.JSONDecodeError, ValueError) as exc:
         print(f"[-] Failed to load events: {exc}", file=sys.stderr)
         return 2

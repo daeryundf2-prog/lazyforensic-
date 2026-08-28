@@ -26,8 +26,10 @@ Rust 기반 Hayabusa/Chainsaw를 **있으면** 호출하는 래퍼다. `hayabusa
    chainsaw.exe search "mimikatz" "C:\Evidence\Logs" --json
    ```
 
-## 필수 준비
-- 도구 부재 시: `powershell -ExecutionPolicy Bypass -File scripts/download_dfir_binaries.ps1` 실행으로 최신 바이너리 설치. 다운로드 후 SHA256을 직접 확인한다. 바이너리 없이 결과를 만들지 않는다.
+## 필수 준비 (게이트 메커니즘)
+- 명령을 만들기 **전에** 게이트를 실행한다: `python scripts/check_tool.py hayabusa.exe chainsaw.exe`
+  - exit 0 이면 진행, exit 2 이면 분석 결과를 만들지 않고 설치 안내만 한다 (fail-closed).
+- 도구 부재 시 설치: `powershell -ExecutionPolicy Bypass -File scripts/download_dfir_binaries.ps1` 실행으로 최신 바이너리 설치. 다운로드 후 SHA256을 직접 확인한다.
 
 ## 하지 않는 일
 - Hayabusa/Chainsaw 미설치 상태에서 Sigma 탐지 결과를 생성

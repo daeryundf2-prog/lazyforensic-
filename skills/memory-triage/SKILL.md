@@ -9,6 +9,12 @@ description: "MemProcFS/Volatility 래퍼 — bring-your-own-binary 메모리 �
 
 물리 메모리 덤프(`.raw`, `.dmp`, `.vmem`)가 있고 **도구가 설치되어 있을 때만** 아래 명령을 안내한다.
 
+## 게이트 (명령 만들기 전에 실행)
+
+```bash
+python scripts/check_tool.py MemProcFS.exe vol.py   # exit 2 면 분석 결과 생성 금지
+```
+
 ## 핵심 도구 (바이너리가 있을 때만)
 
 1. **MemProcFS (가상 드라이브 마운트 — 별도 설치):**

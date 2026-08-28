@@ -11,6 +11,7 @@ Maya headers, or HWP/Office metadata.
 
 import argparse
 import hashlib
+import json
 import os
 import sys
 from datetime import datetime, timezone
@@ -122,13 +123,22 @@ def main(argv=None):
         description="OS-visible file timestamps and hashes. Not an $MFT auditor."
     )
     parser.add_argument("file", help="Target file path")
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Emit the audit result as JSON (stdout redirect로 audit.json 생성 — "
+        "verify_report.py --evidence 의 근거 파일이 된다)",
+    )
     args = parser.parse_args(argv)
 
     res = audit_file(args.file)
     if res is None:
         print(f"[-] File not found: {args.file}", file=sys.stderr)
         return 2
-    print_audit_report(res)
+    if args.json:
+        print(json.dumps(res, ensure_ascii=False, indent=2))
+    else:
+        print_audit_report(res)
     return 0
 
 

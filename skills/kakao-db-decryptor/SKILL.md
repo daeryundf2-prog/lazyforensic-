@@ -19,9 +19,10 @@ description: "카카오톡 DB 래퍼 — 텍스트 내보내기만 지원, SQLit
 ## 참고 (별도 도구 — 미포함)
 - 복호화된 DB가 있다면 예시 쿼리:
   ```sql
-  SELECT datetime(created_at, 'unixepoch', 'localtime') AS timestamp,
-         user_id, message, attachment
+  SELECT datetime(created_at / 1000, 'unixepoch', 'localtime') AS timestamp,
+         type, user_id, message
   FROM chat_logs
   ORDER BY created_at ASC;
   ```
+- 주의: KakaoTalk `chat_logs.created_at`은 epoch **밀리초**다 — `/ 1000` 없이 `unixepoch`에 넘기면 날짜가 전부 틀어진다.
 - 이 결과는 `forensic-timeline`의 `events.json`으로 수동 변환해야 한다. 자동 변환기는 제공하지 않는다.

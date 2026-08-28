@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import sys
 import tempfile
 import unittest
 from datetime import datetime, timezone
@@ -219,6 +220,152 @@ class KakaoTests(unittest.TestCase):
         msgs = kakao.parse_kakao_text("[2024-01-16 14:15:22] 팀:홍길동: 안녕하세요.")
         self.assertEqual(len(msgs), 1)
         self.assertEqual(msgs[0]["sender"], "팀:홍길동")
+
+    def test_real_pc_export_format_parses(self):
+        # 실제 카카오톡 PC '대화내용 저장' 포맷 (===== 헤더 + [오후 2:15] 닉네임 : 메시지)
+        msgs = kakao.parse_kakao_file(str(FIXTURES / "kakao_pc_real.txt"))
+        messages = [r for r in msgs if r["type"] == "message"]
+        self.assertEqual(len(messages), 5)
+        self.assertEqual(messages[0]["timestamp"], "2024-01-16 14:15:00")
+        self.assertEqual(messages[0]["second_precision"], "export-has-no-seconds")
+        # 발신자/내용 구분은 ' : ' 한 번 — 메시지 내부 콜론은 보존된다
+        self.assertEqual(messages[1]["sender"], "김철수")
+        self.assertEqual(messages[1]["message"], "회의 시간: 3시입니다")
+        # 초 있는 변형은 as-exported
+        self.assertEqual(messages[2]["timestamp"], "2024-01-16 15:05:30")
+        self.assertEqual(messages[2]["second_precision"], "as-exported")
+        # 다음 날짜 헤더가 timestamp 를 갱신한다
+        self.assertEqual(messages[4]["timestamp"], "2024-01-17 09:00:00")
+
+    def test_real_pc_system_events_are_separate_records(self):
+        records = kakao.parse_kakao_file(str(FIXTURES / "kakao_pc_real.txt"))
+        system = [r for r in records if r["type"] == "system"]
+        self.assertEqual(len(system), 1)
+        self.assertEqual(system[0]["message"], "홍길동님이 나갔습니다.")
+        self.assertEqual(system[0]["timestamp"], "2024-01-16 00:05:00")
+        # 시각 접두어가 없는 시스템 이벤트도 분리되며 날짜만 있으면 timestamp 는 null 이 아닌 날짜 미상
+        bare = kakao.parse_kakao_text("--------------- 2024년 1월 16일 화요일 ---------------\n홍길동님이 들어왔습니다.\n")
+        self.assertEqual(bare[0]["type"], "system")
+        self.assertIsNone(bare[0]["timestamp"])
+
+    def test_attachment_word_mention_is_not_an_attachment(self):
+        records = kakao.parse_kakao_file(str(FIXTURES / "kakao_pc_real.txt"))
+        messages = [r for r in records if r["type"] == "message"]
+        # '사진' 첨부 표기 → True
+        self.assertTrue(messages[2]["has_attachment"])
+        # '사진 좀 보내줘' 언급 → False (구버전은 True 로 위장했다)
+        self.assertFalse(messages[3]["has_attachment"])
+
+    def test_unrecognized_lines_are_preserved_as_unparsed(self):
+        records = kakao.parse_kakao_text("대화 내용 저장: 2024-01-16 오후 3:00\n[홍길동] [오후 2:15] 안녕\n")
+        self.assertEqual(records[0]["type"], "unparsed")
+        self.assertEqual(records[0]["message"], "대화 내용 저장: 2024-01-16 오후 3:00")
+        self.assertEqual(records[1]["type"], "message")
+
+    def test_cp949_legacy_encoding_is_supported(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "kakao_cp949.txt"
+            text = "--------------- 2024년 1월 16일 화요일 ---------------\n[홍길동] [오후 2:15] 안녕\n"
+            path.write_bytes(text.encode("cp949"))
+            msgs = kakao.parse_kakao_file(str(path))
+            self.assertEqual(len(msgs), 1)
+            self.assertEqual(msgs[0]["sender"], "홍길동")
+            self.assertEqual(msgs[0]["message"], "안녕")
+
+    def test_undecodable_input_fails_closed(self):
+        # BOM 은 UTF-16 이지만 유효하지 않은 서로게이트 — mojibake 로 읽지 않고 실패한다
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "broken.txt"
+            path.write_bytes(b"\xff\xfe" + b"\x00\xd8\x00\x00")  # unpaired high surrogate
+            with self.assertRaises(ValueError):
+                kakao.read_kakao_text(str(path))
+
+    def test_multiline_indent_is_preserved(self):
+        msgs = kakao.parse_kakao_text(
+            "--------------- 2024년 1월 16일 화요일 ---------------\n[홍길동] [오후 2:15] 목록\n  - 항목 1\n"
+        )
+        self.assertEqual(msgs[0]["message"], "목록\n  - 항목 1")
+
+
+class AuditChainTests(unittest.TestCase):
+    """문서화된 검증 체인: audit_timestamps.py --json > audit.json → verify_report.py --evidence"""
+
+    def test_json_flag_emits_audit_json(self):
+        import io
+        from contextlib import redirect_stdout
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            code = audit.main([str(Path(__file__)), "--json"])
+        self.assertEqual(code, 0)
+        data = json.loads(buf.getvalue())
+        self.assertEqual(len(data["sha256"]), 64)
+        self.assertIn("md5_legacy", data)
+
+    def test_documented_report_chain_passes(self):
+        import hashlib
+        import io
+        import subprocess
+        from contextlib import redirect_stdout
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "증거파일.bin"
+            target.write_bytes(b"case-evidence-bytes")
+            buf = io.StringIO()
+            with redirect_stdout(buf):
+                self.assertEqual(audit.main([str(target), "--json"]), 0)
+            audit_json = Path(tmp) / "audit.json"
+            audit_json.write_text(buf.getvalue(), encoding="utf-8")
+
+            sha = hashlib.sha256(b"case-evidence-bytes").hexdigest()
+            report = Path(tmp) / "감정서 초안.md"
+            report.write_text(f"# 감정서\n\nSHA-256: {sha}\n비교 결과: 미측정\n", encoding="utf-8")
+            proc = subprocess.run(
+                [sys.executable, str(ROOT / "scripts" / "verify_report.py"), str(report),
+                 "--evidence", str(audit_json)],
+                capture_output=True, text=True, cwd=str(ROOT),
+            )
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+
+    def test_ntfs_parser_reports_error_not_empty(self):
+        import subprocess
+        # dissect 가 설치되어 있지 않은 환경에서도 '성공한 빈 결과'를 내면 안 된다
+        proc = subprocess.run(
+            [sys.executable, str(ROOT / "scripts" / "parse_ntfs_artifacts.py"), str(Path(__file__)),
+             "--artifact", "prefetch"],
+            capture_output=True, text=True, cwd=str(ROOT),
+        )
+        payload = json.loads(proc.stdout)
+        self.assertEqual(proc.returncode, 3)
+        self.assertTrue(payload["error"])
+        self.assertEqual(payload["count"], 0)
+
+    def test_check_tool_gate(self):
+        import subprocess
+        ok = subprocess.run(
+            [sys.executable, str(ROOT / "scripts" / "check_tool.py"), "python3"],
+            capture_output=True, text=True, cwd=str(ROOT),
+        )
+        self.assertEqual(ok.returncode, 0)
+        missing = subprocess.run(
+            [sys.executable, str(ROOT / "scripts" / "check_tool.py"), "no-such-binary-xyz"],
+            capture_output=True, text=True, cwd=str(ROOT),
+        )
+        self.assertEqual(missing.returncode, 2)
+
+
+class TimelineMaxEventsTests(unittest.TestCase):
+    def test_max_events_flag_is_real(self):
+        # 구버전은 에러 메시지에만 --max-events 가 있고 플래그는 없었다
+        with tempfile.TemporaryDirectory() as tmp:
+            src = Path(tmp) / "big.json"
+            src.write_text(json.dumps([
+                {"timestamp": "2024-01-16 14:00:00", "description": f"e{i}"} for i in range(3)
+            ]), encoding="utf-8")
+            out = Path(tmp) / "out.html"
+            code = timeline.main(["--input", str(src), "--output", str(out), "--max-events", "2"])
+            self.assertEqual(code, 2)
+            self.assertFalse(out.exists())
+            code_ok = timeline.main(["--input", str(src), "--output", str(out), "--max-events", "3"])
+            self.assertEqual(code_ok, 0)
 
 
 class ForensicVideoTests(unittest.TestCase):
