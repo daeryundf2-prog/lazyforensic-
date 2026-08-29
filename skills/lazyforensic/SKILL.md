@@ -26,6 +26,7 @@ Antigravity + Gemini 진입점. 먼저 `GEMINI.md`를 읽고, **레인 하나**�
 | 자르기/필름스트립 | `../video-editor/SKILL.md` | — |
 | **문장 교정** | `../korean-writing-reviewer/SKILL.md` | **검토해줘 → 무조건 (보고서면)** |
 | DLP 표 | `../dlp-leakage-detector/SKILL.md` | — |
+| **AI 탐지 / AI 흔적 포렌식** | `../ai-trace-detector/SKILL.md` | — |
 | EVTX 헌팅 (BYO Hayabusa/Chainsaw) | `../dfir-evtx-hunter/SKILL.md` |
 | MFT/Prefetch (BYO Dissect/EZ-Tools) | `../forensic-mft-parser/SKILL.md` |
 | 카카오 DB 래퍼 (txt만) | `../kakao-db-decryptor/SKILL.md` |

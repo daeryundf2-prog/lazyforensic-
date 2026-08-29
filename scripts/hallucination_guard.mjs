@@ -163,12 +163,18 @@ function evidenceCandidates(targetFile) {
 	return candidates.filter((p) => fs.existsSync(p));
 }
 
-// Python 탐색: python3 → python → py -3 (Windows Store alias 오탐 배제)
-const PYTHON_CANDIDATES = [
-	{ cmd: 'python3', pre: [] },
-	{ cmd: 'python', pre: [] },
-	{ cmd: 'py', pre: ['-3'] },
-];
+// Python 탐색: OS별 최적 순서 및 Windows Store alias 오탐 배제
+const PYTHON_CANDIDATES = process.platform === 'win32'
+	? [
+		{ cmd: 'python', pre: [] },
+		{ cmd: 'py', pre: ['-3'] },
+		{ cmd: 'python3', pre: [] },
+	]
+	: [
+		{ cmd: 'python3', pre: [] },
+		{ cmd: 'python', pre: [] },
+		{ cmd: 'py', pre: ['-3'] },
+	];
 
 function runVerify(args) {
 	const attempts = [];
@@ -181,7 +187,7 @@ function runVerify(args) {
 			}
 			return { res, cmd, spawnError: true, attempts };
 		}
-		if (res.status !== 0 && /Python was not found|No Python installation/i.test(res.stderr || '')) {
+		if (res.status !== 0 && (res.status === 9009 || /Python was not found|No Python installation|^Python\s*$/i.test((res.stderr || '').trim()))) {
 			// Windows Store app-execution alias — 진짜 인터프리터가 아니다
 			attempts.push(`${cmd}: store alias`);
 			continue;
