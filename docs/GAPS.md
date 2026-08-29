@@ -47,3 +47,14 @@ PostToolUse 감사 로그는 `<cwd>/.lazyforensic/audit_trail.jsonl` 단일 파�
 ## Manim
 
 `video-editor/manim-video/REFERENCE.md`는 참고 문서다. 교육 영상 렌더 파이프라인이 아니다.
+
+## 후속 과제 (알려진 미해결 — v1.0.1 시점)
+
+코드로 끝나지 않는 결정/외부 기록이 필요한 항목. 해결되면 이 목록에서 지운다.
+
+1. **law.go.kr 안티봇 우회의 ToS/정책 검토 (배포 전 필수)** — `korean-law-mcp/src/lib/law-antibot.ts`가 법제처의 난독화 JS 챌린지를 파싱해 우회하고, Chrome UA 스푼핑(`fetch-with-retry.ts`)을 쓴다. 실용적이지만 데이터 제공처 약관의 회색 지대다. 공개 배포/상용 제공 전에 권리 관계 확인과 판단 기록이 필요하다.
+2. **korean-law-mcp CHANGELOG 4.10.0 항목 누락** — vendored 소스의 `CHANGELOG.md` 최신 항목이 4.9.7인데 package.json/CLAUDE.md는 4.10.0이다. 폐지법령 기능의 정확한 변경 내역을 업스트림 기록으로 확인해야 쓸 수 있어 비워 뒀다. 임의로 채우면 그것이 조작이다.
+3. **CI Node.js 20 지원 종료 경고** — `actions/checkout@v4`·`setup-node@v4`·`setup-python@v5`가 Node 20 타깃이라 러너가 Node 24로 강제한다는 경고. 동작에는 영향이 없어 그대로 뒀다. actions 신버전으로 올리면 사라진다.
+4. **해시-파일 결합 오류는 검증 불가** — `verify_report.py`의 해시 grounding은 파일 단위 집합 비교라, 실재하는 해시 A를 파일 B 서술에 붙이는 오류는 잡지 못한다(위 "검증 게이트" 섹션과 동일 내용). 후보 개선: audit_trail에 파일-해시 바인딩을 저장하고 보고서의 파일명-해시 인접성을 대조.
+5. **법령 조문 자동 대조 불가** — 조문 인용은 korean_law MCP 응답과의 자동 대조 없이 출처 표기 경고(WARN)만 한다. 후보 개선: MCP 응답 캐시를 근거 파일로 전달하는 플래그.
+
