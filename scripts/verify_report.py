@@ -65,19 +65,44 @@ def extract_hashes(text: str) -> list[str]:
     """SHA-256 (64hex 전체) + 문맥 라벨이 붙은 MD5(32hex)/SHA-1(40hex).
 
     32/40 hex 는 무라벨 오탐이 많아 MD5/SHA-1 라벨이 같은 줄에 있을 때만 수집한다.
+
+    줄바꿈·공백으로 분할된 64hex 도 잡는다(표 정렬·하드랩). 개행 결합은 두
+    32hex 해시를 하나로 합쳐 환영 해시를 만들 수 있지만, 그 결과는 '근거 없는
+    해시' 판정(실패폐쇄 방향)으로 귀결되므로 안전한 쪽의 오류다.
     """
     found = re.findall(r"\b[a-fA-F0-9]{64}\b", text)
+    have = {h.lower() for h in found}
     for line in text.splitlines():
         if re.search(r"\bMD5\b|\bSHA-?1\b|md5_legacy", line, re.IGNORECASE):
-            found.extend(re.findall(r"\b[a-fA-F0-9]{40}\b", line))
-            found.extend(re.findall(r"\b[a-fA-F0-9]{32}\b", line))
+            for pat in (r"\b[a-fA-F0-9]{40}\b", r"\b[a-fA-F0-9]{32}\b"):
+                for h in re.findall(pat, line):
+                    if h.lower() not in have:
+                        found.append(h)
+                        have.add(h.lower())
+    # 분할 해시: 개행/공백이 hex 문자 사이에 낀 경우만 결합해 다시 찾는다.
+    compact = re.sub(r"(?<=[a-fA-F0-9])[ \t]*\r?\n[ \t]*(?=[a-fA-F0-9])", "", text)
+    if compact != text:
+        for h in re.findall(r"\b[a-fA-F0-9]{64}\b", compact):
+            if h.lower() not in have and h not in text:
+                found.append(h)
+                have.add(h.lower())
     return found
 
 
 # 보고서/타임라인 양쪽에서 쓰는 날짜-시각 추출. 비교를 위해 정규형으로 통일한다.
 ISO_DT_RE = re.compile(r"\b(\d{4})-(\d{1,2})-(\d{1,2})[ T](\d{1,2}):(\d{2})(?::(\d{2}))?\b")
 ISO_DATE_RE = re.compile(r"\b(\d{4})-(\d{1,2})-(\d{1,2})\b")
-KOR_DT_RE = re.compile(r"\b(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일\s*(오전|오후)?\s*(\d{1,2})?:?(\d{2})?\b")
+# 한국식 표기: "2024년 5월 1일", "2024년 5월 1일 오전 9시 30분", "…오후 3시",
+# "…9:30" — '시/분' 접미사와 오전/오후, 콜론식 시각을 모두 받는다.
+# '시'만 있고 '분'이 없으면 정분(整分) 근거가 없으므로 00분으로 정규화한다.
+KOR_DT_RE = re.compile(
+    r"\b(?P<y>\d{4})년\s*(?P<mo>\d{1,2})월\s*(?P<d>\d{1,2})일\s*"
+    r"(?:(?P<ampm>오전|오후)\s*)?"
+    r"(?:"
+    r"(?:(?P<hkor>\d{1,2})시)(?:\s*(?P<mikor>\d{1,2})분)?"
+    r"|(?P<hiso>\d{1,2}):(?P<miiso>\d{2})(?::(?P<seiso>\d{2}))?"
+    r")?"
+)
 DOT_DATE_RE = re.compile(r"\b(\d{4})\.\s*(\d{1,2})\.\s*(\d{1,2})\.(?!\d)")
 
 
@@ -100,13 +125,18 @@ def extract_timestamps(text: str) -> list[str]:
         y, mo, d, h, mi, s = m.groups()
         out.add(f"{int(y):04d}-{int(mo):02d}-{int(d):02d} {int(h):02d}:{mi}:{int(s) if s else 0:02d}")
     for m in KOR_DT_RE.finditer(text):
-        y, mo, d, ampm, h, mi = m.groups()
-        date = f"{int(y):04d}-{int(mo):02d}-{int(d):02d}"
-        h24 = _h12_to_24(ampm, int(h) if h else None)
-        if h24 is None:
-            out.add(date)
+        date = f"{int(m.group('y')):04d}-{int(m.group('mo')):02d}-{int(m.group('d')):02d}"
+        if m.group("hkor"):
+            hour = int(m.group("hkor"))
+            minute = int(m.group("mikor") or 0)
+        elif m.group("hiso"):
+            hour = int(m.group("hiso"))
+            minute = int(m.group("miiso"))
         else:
-            out.add(f"{date} {h24:02d}:{mi}:{0:02d}")
+            out.add(date)
+            continue
+        hour = _h12_to_24(m.group("ampm"), hour)
+        out.add(f"{date} {hour:02d}:{minute:02d}:{0:02d}")
     for m in DOT_DATE_RE.finditer(text):
         y, mo, d = m.groups()
         out.add(f"{int(y):04d}-{int(mo):02d}-{int(d):02d}")
@@ -204,7 +234,15 @@ def main(argv=None):
         elif args.evidence:
             errors.append(f"해시 {len(report_hashes)}개가 보고서에 있으나 evidence({args.evidence})에 해당 해시 없음 — audit_timestamps.py --json 결과 또는 .lazyforensic/audit_trail.jsonl 을 --evidence 로 전달해야 함")
         else:
-            warnings.append(f"해시 {len(report_hashes)}개가 보고서에 있으나 --evidence 미제시 — audit_timestamps.py --json > audit.json 후 --evidence 로 재검증할 것")
+            # --evidence 가 아예 없으면 grounding 근거 자체가 없다. 과거에는
+            # WARN(통과)으로 두어 '감사 생략 + 조작 해시'라는 핵심 위협이
+            # 게이트를 통과했다. 실패폐쇄: 근거 없는 해시는 어느 경로로
+            # 들어왔든 FAIL이다.
+            errors.append(
+                f"근거 없는 해시 {len(report_hashes)}개: {sorted(list(report_hashes))[:3]} — "
+                "--evidence 미제시로 grounding 불가. 감사 없이 쓴 해시는 조작과 구별할 수 없다. "
+                "audit_timestamps.py <원본> --json > audit.json 후 --evidence 로 재검증할 것"
+            )
 
     # 3) Chain of Custody 빈칸 검증: 해시 없음 + 결론이 '일치'이면 경고
     if "미측정" not in text and "미확인" not in text:

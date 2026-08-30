@@ -40,7 +40,7 @@ Google Antigravity + Gemini(3.7 Flash) 용 **디지털 포렌식 보조** 플러
 
 ```bash
 git clone https://github.com/daeryundf2-prog/lazyforensic- && cd lazyforensic-
-python -m unittest discover -s test   # 환경 점검 겸 92개 테스트 (수 초)
+python -m unittest discover -s test   # 환경 점검 겸 96개 테스트 (수 초)
 ```
 
 ## 법령 조회 (선택 — 한국법 MCP)
@@ -132,7 +132,6 @@ python scripts/verify_report.py case/감정서초안.md --evidence case/audit.js
 ## 테스트 / CI
 
 ```bash
-python -m unittest discover -s test -v   # 파서·검증기·훅 가드 92개 회귀 테스트
 ```
 `.github/workflows/ci.yml`: Ubuntu/Windows 유닛 테스트 + 훅 가드 단언, korean-law-mcp 빌드+vitest.
 

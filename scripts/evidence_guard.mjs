@@ -121,10 +121,30 @@ function pathTokens(texts) {
 }
 
 // ---------------------------------------------------------------------------
+// 읽기전용 검사 명령 판별 — 증거 '읽기'(해시 감사·ls·파서 실행)는 쓰기가 아니므로
+// 차단하지 않는다. 이 가드가 evidence/ 관례를 권하면서 읽기까지 막으면 자체
+// 감사 워크플로(sha256sum evidence/x.raw)가 스스로 막히는 모순이 생긴다.
+// 판단이 불가능한 형태(멀티라인, python -c 인라인 코드, 쓰기 신호 포함)는
+// 전부 차단으로 간다 — best-effort 가드의 실패폐쇄 방향.
+// ---------------------------------------------------------------------------
+const READ_ONLY_VERBS = /^(sha256sum|md5sum|sha1sum|shasum|sha256deep|cat|ls|dir|file|stat|head|tail|wc|strings|exiftool|fls|ils|icat|img_stat|fsstat|jpeg_extract|python3?|py|node)\b/i;
+const WRITE_SIGNS_RE = /(>|>>|\btee\b|\bdd\b|\bcp\b|\bmv\b|\brm\b|\bshred\b|\btruncate\b|\bchmod\b|\bchown\b|\bchattr\b|\bmkfs\b|\bsponge\b|\binstall\b|\btouch\b|\bmktemp\b|\bsed\b[^\n]*\s-i\b)/i;
+
+function isReadOnlyInspection(text) {
+	const t = String(text).trim();
+	if (!t || t.includes('\n')) return false;              // 멀티라인 스크립트는 판단 불가
+	if (!READ_ONLY_VERBS.test(t.split(/[\s"'`]+/)[0] || '')) return false;
+	if (WRITE_SIGNS_RE.test(t)) return false;
+	// 인터프리터 인라인 코드(-c/-m)는 쓰기를 숨길 수 있다 — 판단 불가로 차단 유지
+	if (/\b(python3?|py|node)\b/i.test(t) && /\s-[cm]\b/.test(t)) return false;
+	return true;
+}
+
+// ---------------------------------------------------------------------------
 // 보호 패턴
 // ---------------------------------------------------------------------------
 
-const PROTECTED_EXTENSIONS = /\.(raw|dd|dmp|e01|ex01|evtx|evtxc)$/i;
+const PROTECTED_EXTENSIONS = /\.(raw|dd|dmp|mem|vmem|img|l01|ad1|e01|ex01|aff|aff4|vmdk|vhd|evtx|evtxc)$/i;
 // evidence 를 경로 세그먼트로 포함하는 토큰 (cp x evidence/ 같은 상대 경로 쓰기 포함).
 // evidence_note.md 처럼 evidence 로 시작하는 다른 이름은 세그먼트가 아니므로 통과.
 const EVIDENCE_SEGMENT_RE = /^(?:.*[\/\\])?evidence(?:[\/\\].*)?$/i;
@@ -138,13 +158,20 @@ const PROTECTED_PATTERNS = [
 
 function findViolation(texts) {
 	for (const text of texts) {
+		// 읽기전용 검사 명령은 증거 경로·확장자 언급을 허용한다($MFT·로우 디바이스
+		// 패턴은 읽기라도 직접 접근 위험이 남아 차단 유지). 판정은 토큰이 아니라
+		// 명령(텍스트) 단위로 한다 — "sha256sum evidence/x.raw"의 경로 토큰만
+		// 떼어 보면 명령이 읽기인지 알 수 없다.
+		const readOnly = isReadOnlyInspection(text);
 		for (const { re, label } of PROTECTED_PATTERNS) {
+			if (readOnly && label === 'evidence directory') continue;
 			if (re.test(text)) return `pattern ${label}`;
 		}
-	}
-	for (const token of pathTokens(texts)) {
-		if (PROTECTED_EXTENSIONS.test(token)) return `protected extension: ${path.basename(token)}`;
-		if (EVIDENCE_SEGMENT_RE.test(token)) return 'evidence directory';
+		if (readOnly) continue;
+		for (const token of pathTokens([text])) {
+			if (PROTECTED_EXTENSIONS.test(token)) return `protected extension: ${path.basename(token)}`;
+			if (EVIDENCE_SEGMENT_RE.test(token)) return 'evidence directory';
+		}
 	}
 	return null;
 }

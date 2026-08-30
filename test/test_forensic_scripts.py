@@ -445,5 +445,55 @@ class ClaimHonestyTests(unittest.TestCase):
         self.assertNotIn("주민번호 / 사업자번호", contract)
 
 
+verify_report = load_module("verify_report", "scripts/verify_report.py")
+
+
+class VerifyReportHardeningTests(unittest.TestCase):
+    """v1.0.1 수정 회귀: 고아 해시 FAIL·분할 해시·한국어 시각 grounding."""
+
+    def _run(self, report_text, extra=()):
+        import subprocess
+        with tempfile.TemporaryDirectory() as tmp:
+            report = Path(tmp) / "감정서 초안.md"
+            report.write_text(report_text, encoding="utf-8")
+            return subprocess.run(
+                [sys.executable, str(ROOT / "scripts" / "verify_report.py"), str(report), *extra],
+                capture_output=True, text=True, encoding="utf-8", cwd=str(ROOT),
+            )
+
+    def test_orphan_hash_without_evidence_fails_closed(self):
+        # 과거에는 --evidence 미제시 시 WARN(통과)으로 두어 '감사 생략 + 조작
+        # 해시'가 게이트를 통과했다. 이제 FAIL이어야 한다.
+        fabricated = "a" * 64
+        proc = self._run(f"SHA-256: {fabricated}\n")
+        self.assertEqual(proc.returncode, 1, proc.stderr)
+        self.assertIn("근거 없는 해시", proc.stderr)
+
+    def test_report_without_hashes_still_passes(self):
+        proc = self._run("총평: 해시나 시각 주장이 없는 초안이다.\n")
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+
+    def test_hash_split_across_lines_is_detected(self):
+        import hashlib
+        sha = hashlib.sha256(b"evidence").hexdigest()
+        first, second = sha[:40], sha[40:]
+        proc = self._run(f"SHA-256:\n{first}\n{second}\n")
+        self.assertEqual(proc.returncode, 1, proc.stderr)
+        self.assertIn("근거 없는 해시", proc.stderr)
+
+    def test_korean_clock_time_grounding(self):
+        times = verify_report.extract_timestamps("사건은 2024년 5월 1일 오전 9시 30분에 발생했다")
+        self.assertIn("2024-05-01 09:30:00", times)
+        times2 = verify_report.extract_timestamps("대응은 2024년 5월 1일 오후 3시에 끝났다")
+        self.assertIn("2024-05-01 15:00:00", times2)
+        # 콜론식 병기도 유지된다
+        times3 = verify_report.extract_timestamps("2024년 5월 1일 21:05에 접속 기록이 있다")
+        self.assertIn("2024-05-01 21:05:00", times3)
+
+    def test_korean_date_only_still_extracts(self):
+        times = verify_report.extract_timestamps("2024년 5월 1일에 발생했다")
+        self.assertIn("2024-05-01", times)
+
+
 if __name__ == "__main__":
     unittest.main()

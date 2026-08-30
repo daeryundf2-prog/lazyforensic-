@@ -12,6 +12,15 @@ import json
 import sys
 from datetime import datetime
 
+# Windows(cp1252/cp949) 콘솔에서 한글 진단 메시지가 UnicodeEncodeError로 죽는 것을 막는다.
+# 커밋 e3fa4e6 ("force UTF-8 stdio in all CLI scripts")에서 이 스크립트만 누락되었다.
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 HTML_TEMPLATE = """<!DOCTYPE html>
 <html lang="ko">
 <head>

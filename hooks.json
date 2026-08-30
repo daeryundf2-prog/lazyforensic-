@@ -29,7 +29,7 @@
 		],
 		"PostToolUse": [
 			{
-				"matcher": "^(write_to_file|replace_file_content|generate_document|fill_form)$",
+				"matcher": "^(write_to_file|replace_file_content|apply_patch|write|edit|generate_document|fill_form)$",
 				"hooks": [
 					{
 						"type": "command",

@@ -26,6 +26,7 @@ PC 파서는 실제 "대화내용 저장" 포맷(`===` 헤더 + `[오후 2:15] �
 ## 검증 게이트 (verify_report / hallucination_guard)
 
 `verify_report.py`의 해시 grounding은 **파일 단위 집합 비교**다. 해시 A를 파일 B 서술에 붙이는 결합 오류는 잡지 못한다.
+2026-08 수정: 보고서에 해시가 있는데 `--evidence`가 없으면 과거 WARN(통과) 대신 **FAIL**로 바뀌었다(감사 생략+조작 해시 차단). 줄바꿈으로 분할된 64hex 해시와 "9시 30분" 식 한국어 시각도 검출한다. 여전히 잡지 못하는 것: 두 32hex 해시가 줄 경로에서 결합된 환영 해시(실패폐쇄 방향의 오탐), evidence 폴더 읽기 허용 후 `python -c` 인라인 쓰기(가드는 best-effort).
 법령 조문은 korean_law MCP 응답과의 자동 대조가 불가능하다. 출처 표기 없는 조문 인용은 WARN일 뿐, 조문 텍스트 진위는 검증하지 않는다.
 `hallucination_guard.mjs`는 **PostToolUse 사후 게이트**다 — 파일이 이미 쓰인 뒤 검사하며, 실제 차단은 호스트가 `failurePolicy: FAIL_CLOSED`(exit 1)을 지원할 때 작동한다. exit 코드 규약: 차단 1, 통과 0, 검증 불가(보고서 미발견) 0+경고, python 전무 0+설치 안내(FAIL_OPEN).
 python이 아예 없는 Windows에서는 검증 자체가 불가능해 경고 후 통과한다 — 이 경우 게이트는 사실상 비활성이다.

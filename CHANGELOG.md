@@ -28,6 +28,23 @@
 - `05_evasion_and_limits.md`: 메신저 전송 방식 항목의 플랫폼명(Telegram 사진 모드/파일 모드) 복원
 - `analyze_deepfake_evidence.py`: SKILL.md에만 문서화되고 구현되지 않았던 `--plot-fft` 플래그 구현(matplotlib 선택 의존, 실패 시 exit 2), 비디오 컨테이너 FFT를 ffmpeg 1프레임 추출로 지원, 항상 0.0이던 죽은 필드 `high_freq_anomaly_score` 제거, "해시 일치 시 법적 증거능력 인정" 과단정 문구를 무결성 확인서 수준으로 교정, MD5/SHA-1 충돌 취약성 주석 추가, 미사용 `math` import 제거
 
+### Fixed — 외부 리뷰 후속 수정 (검증 게이트)
+
+2026-08-30 외부 코드 리뷰(보안 7/10, 종합 7.5/10)에서 확인된 결함 수리. 테스트는 guard pack 추가분과 합산해 최종 96개.
+
+### Fixed — 검증 게이트 (P1)
+
+- `hooks.json` PostToolUse 매처에 `write|edit|apply_patch` 추가 — 호스트 Write/Edit 경로로 수정한 보고서는 검증 게이트를 아예 통과하지 않던 배선 불일치 (PreToolUse와 정렬)
+- `verify_report.py`: 보고서에 해시가 있는데 `--evidence`가 없으면 WARN(통과) 대신 **FAIL**로 격상 — '감사 생략 + 조작 해시'라는 핵심 위협이 WARN으로 게이트를 통과하던 구멍. README의 "근거 없는 해시 → FAIL" 주장이 이제 무조건 참
+
+### Fixed — 검증 게이트 (P2)
+
+- `verify_report.py`: 줄바꿈·공백으로 분할된 64hex 해시 검출(표 정렬·하드랩 우회 차단), "오전 9시 30분" 식 한국어 시각 인식(이전은 날짜만 추출해 거짓 시각이 grounding을 통과), 콜론식 시각 병기 유지
+- `generate_timeline.py` UTF-8 stdio 누락 보강 — e3fa4e6("all CLI scripts")에서 이 스크립트만 빠져 있었다
+- evidence_guard: 읽기전용 검사 명령(sha256sum/파서 실행 등)의 증거 '읽기' 허용 — 가드가 evidence/ 관례를 권하면서 감사 워크플로 자체를 막던 모순 해소. 쓰기 신호(리다이렉트·cp·mv·tee·dd·sed -i)와 `python -c` 인라인 코드는 여전히 차단
+- evidence_guard 보호 확장자에 .mem/.vmem/.img/.l01/.ad1/.aff/.aff4/.vmdk/.vhd 추가
+
+
 ## [1.0.1] — 2026-08-29
 
 2026-08 종합 리뷰(문서·정직성 9/10, korean-law-mcp 8/10, 스킬 6/10, 스크립트·훅 4/10, 패키징 3/10)에서 발견된 결함을 수리한 시리즈. 리뷰에서 "치명적"으로 분류된 5가지가 모두 해소됐다.

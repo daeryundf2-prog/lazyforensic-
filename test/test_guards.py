@@ -82,6 +82,45 @@ class EvidenceGuardTests(unittest.TestCase):
         )
         self.assertEqual(proc.returncode, 0)
 
+    def test_readonly_hash_audit_of_evidence_passes(self):
+        # 증거 '읽기'(해시 감사)는 쓰기가 아니다 — 과거에는 읽기까지 차단해
+        # 자체 감사 워크플로와 충돌했다.
+        proc = run_guard(
+            "evidence_guard.mjs", ["pre-tool-use"],
+            env={"TOOL_INPUT": json.dumps({"command": "sha256sum evidence/usb.raw"})},
+        )
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+
+    def test_readonly_python_audit_script_passes(self):
+        proc = run_guard(
+            "evidence_guard.mjs", ["pre-tool-use"],
+            env={"TOOL_INPUT": json.dumps({"command": "python skills/forensic-audit/scripts/audit_timestamps.py evidence/usb.raw --json"})},
+        )
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+
+    def test_readonly_with_redirect_is_still_blocked(self):
+        proc = run_guard(
+            "evidence_guard.mjs", ["pre-tool-use"],
+            env={"TOOL_INPUT": json.dumps({"command": "cat evidence/usb.raw > copy.raw"})},
+        )
+        self.assertEqual(proc.returncode, 1)
+
+    def test_interpreter_inline_code_on_evidence_is_blocked(self):
+        # python -c 는 쓰기를 숨길 수 있다 — 판단 불가이므로 차단이 안전하다.
+        proc = run_guard(
+            "evidence_guard.mjs", ["pre-tool-use"],
+            env={"TOOL_INPUT": json.dumps({"command": "python -c \"open('evidence/x.raw','w')\""})},
+        )
+        self.assertEqual(proc.returncode, 1)
+
+    def test_memory_dump_extensions_are_blocked(self):
+        for name in ("mem.vmem", "disk.img", "backup.l01", "image.ad1"):
+            proc = run_guard(
+                "evidence_guard.mjs", ["pre-tool-use"],
+                env={"TOOL_INPUT": json.dumps({"file_path": f"evidence/{name}"})},
+            )
+            self.assertEqual(proc.returncode, 1, f"{name} 이 차단되지 않았다")
+
     def test_post_tool_use_writes_single_audit_log(self):
         with tempfile.TemporaryDirectory() as tmp:
             report = Path(tmp) / "보고서.md"
