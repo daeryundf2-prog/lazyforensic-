@@ -103,6 +103,7 @@ python scripts/verify_report.py case/감정서초안.md --evidence case/audit.js
 | MFT/Prefetch/Shimcache (Dissect/EZ-Tools) | 🟡 BYO | 실패 시 `error` 필드 + exit 3 ("0건" 위장 없음) |
 | 메모리 덤프 (MemProcFS/Volatility 3) | 🟡 BYO | 덤프+도구 모두 있을 때만 |
 | 영상 프레임/메타데이터 감사 | ✅ | ffmpeg 필요 — `setup.py --check`로 확인 |
+| AI 사용 흔적 포렌식 (md/txt/E01 역추적) | ✅ | `skills/ai-trace-detector/SKILL.md` |
 | 딥페이크/AI 합성 미디어 1차 감사 (SHA-256, C2PA/JUMBF, 2D FFT) | ✅ | `python scripts/analyze_deepfake_evidence.py <파일> --output 리포트.md` — 최종 판정은 다중 탐지기 앙상블 별도 수행 |
 | 영상 대화록(Whisper) | 🔒 동의 필요 | `--upload-audio` 명시 동의 없이 외부 전송 금지 |
 | 법령/판례 조회 | 🟡 키 필요 | 위 "법령 조회" 참고 |

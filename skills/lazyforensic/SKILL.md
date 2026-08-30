@@ -28,10 +28,10 @@ Antigravity + Gemini 진입점. 먼저 `GEMINI.md`를 읽고, **레인 하나**�
 | DLP 표 | `../dlp-leakage-detector/SKILL.md` | — |
 | **AI 탐지 / AI 흔적 포렌식** | `../ai-trace-detector/SKILL.md` | — |
 | **딥페이크 기술 레이더 & 포렌식** | `../deepfake-forensic-radar/SKILL.md` | — |
-| EVTX 헌팅 (BYO Hayabusa/Chainsaw) | `../dfir-evtx-hunter/SKILL.md` |
-| MFT/Prefetch (BYO Dissect/EZ-Tools) | `../forensic-mft-parser/SKILL.md` |
-| 카카오 DB 래퍼 (txt만) | `../kakao-db-decryptor/SKILL.md` |
-| 메모리 래퍼 (BYO MemProcFS) | `../memory-triage/SKILL.md` |
+| EVTX 헌팅 (BYO Hayabusa/Chainsaw) | `../dfir-evtx-hunter/SKILL.md` | — |
+| MFT/Prefetch (BYO Dissect/EZ-Tools) | `../forensic-mft-parser/SKILL.md` | — |
+| 카카오 DB 래퍼 (txt만) | `../kakao-db-decryptor/SKILL.md` | — |
+| 메모리 래퍼 (BYO MemProcFS) | `../memory-triage/SKILL.md` | — |
 
 ## Visual
 

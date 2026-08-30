@@ -17,9 +17,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Run unit tests
+      - name: Install pytest
         run: |
-          python -m unittest discover -s test -v
+          python -m pip install --upgrade pip
+          python -m pip install pytest
+      - name: Run tests (pytest — 함수형 테스트까지 수집)
+        run: |
+          python -m pytest test/ -v
       - name: Hook guard assertions (env + stdin pipe, Linux/Windows)
         run: |
           node - <<'EOF'
@@ -47,6 +51,9 @@ jobs:
       - name: Syntax-check all hook scripts
         run: |
           for f in scripts/*.mjs; do node --check "$f"; done
+      - name: Markdown structure guard (레포 문서 스트리핑 검사)
+        run: |
+          node scripts/markdown_structure_guard.mjs --check skills README.md CHANGELOG.md GEMINI.md docs
       - name: JSON validity (hooks, plugin)
         run: |
           node -e "JSON.parse(require('fs').readFileSync('hooks.json','utf8'))"
