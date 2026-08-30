@@ -40,7 +40,7 @@ Google Antigravity + Gemini(3.7 Flash) 용 **디지털 포렌식 보조** 플러
 
 ```bash
 git clone https://github.com/daeryundf2-prog/lazyforensic- && cd lazyforensic-
-python -m unittest discover -s test   # 환경 점검 겸 77개 테스트 (수 초)
+python -m unittest discover -s test   # 환경 점검 겸 92개 테스트 (수 초)
 ```
 
 ## 법령 조회 (선택 — 한국법 MCP)
@@ -103,6 +103,7 @@ python scripts/verify_report.py case/감정서초안.md --evidence case/audit.js
 | MFT/Prefetch/Shimcache (Dissect/EZ-Tools) | 🟡 BYO | 실패 시 `error` 필드 + exit 3 ("0건" 위장 없음) |
 | 메모리 덤프 (MemProcFS/Volatility 3) | 🟡 BYO | 덤프+도구 모두 있을 때만 |
 | 영상 프레임/메타데이터 감사 | ✅ | ffmpeg 필요 — `setup.py --check`로 확인 |
+| 딥페이크/AI 합성 미디어 1차 감사 (SHA-256, C2PA/JUMBF, 2D FFT) | ✅ | `python scripts/analyze_deepfake_evidence.py <파일> --output 리포트.md` — 최종 판정은 다중 탐지기 앙상블 별도 수행 |
 | 영상 대화록(Whisper) | 🔒 동의 필요 | `--upload-audio` 명시 동의 없이 외부 전송 금지 |
 | 법령/판례 조회 | 🟡 키 필요 | 위 "법령 조회" 참고 |
 | 무결성 훅 (쓰기 차단/감사 로그) | 🟡 Antigravity | best-effort. OS 읽기전용(`chmod 444`) 병행 권장 |
@@ -130,7 +131,7 @@ python scripts/verify_report.py case/감정서초안.md --evidence case/audit.js
 ## 테스트 / CI
 
 ```bash
-python -m unittest discover -s test -v   # 파서·검증기·훅 가드 77개 회귀 테스트
+python -m unittest discover -s test -v   # 파서·검증기·훅 가드 92개 회귀 테스트
 ```
 `.github/workflows/ci.yml`: Ubuntu/Windows 유닛 테스트 + 훅 가드 단언, korean-law-mcp 빌드+vitest.
 

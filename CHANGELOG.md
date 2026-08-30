@@ -2,6 +2,23 @@
 
 이 레포의 실제 변경을 기록한다. 형식은 Keep a Changelog 를 따르고, 항목은 커밋 해시로 추적한다.
 
+## [Unreleased] — 2026-08-30
+
+### Added — deepfake-forensic-radar 통합 보강 (335b1c6 후속 정비)
+
+- `GEMINI.md` Forensic 라우팅 테이블에 `deepfake-forensic-radar` 등록(13→14) — 스킬 추가 직후 라우팅 문서가 갱신되지 않아 호스트가 딥페이크 요청을 라우팅하지 못하던 통합 누락 수정
+- `README.md` 지원 표에 딥페이크 1차 감사 행 추가
+- `test_deepfake_forensic_radar.py` 보강: JPEG APP11/MP4 c2pa 박스 감지, SKILL.md에 문서화된 CLI 플래그 실존 검증(문서-구현 드리프트 가드), 레퍼런스 파일 스트리핑 가드(빈 불릿/빈 링크 텍스트 탐지), GEMINI.md 라우팅 행 존재 검증
+
+### Fixed — deepfake-forensic-radar 레퍼런스·스크립트 결함
+
+- `01_generation_synthesis.md`: ComfyUI 13대 노드의 저장소명이 전부 공란으로 스트리핑된 결함 복원(13개 링크), 원문 누락 모델 14종 보충(Sora, Vidu, SimSwap, Ghost, XTTS-v2, StyleTTS2, Mini-Omni, VoiceCraft, V-Express, AniPortrait, Champ, MimicMotion, AnimateAnyone, LivePortrait-Realtime) 및 가중치 파일명(`inswapper_128.onnx` 등) 복원
+- `02_detection_forensics.md`: 누락 탐지기 6종 보충(FreqNet, LGrad, RECCE, SBI, VIGIL, CNNDetection), 벤치마크 데이터셋 9종 섹션 신설, 출처 없는 정량 AUC 그리드(예: DIRE GenImage 97.8%)를 근거 있는 수치(UnivFD 92.3%, NPR 91.4%) + 정성 평가표로 교체 — 근거-결론 분리 원칙 정합화
+- `03_c2pa_watermarks.md`: 스트리핑된 필드명(`c2pa.actions`, `c2pa.hash.data`)과 도구 링크 텍스트(c2pa-rs, c2pa-js, stable_signature, tree-ring-watermark) 복원
+- `04_legal_and_court.md`: " 타임스탬프" 공란 → 전자소송(ECFS) 이력·파일시스템 타임스탬프 명시
+- `05_evasion_and_limits.md`: 메신저 전송 방식 항목의 플랫폼명(Telegram 사진 모드/파일 모드) 복원
+- `analyze_deepfake_evidence.py`: SKILL.md에만 문서화되고 구현되지 않았던 `--plot-fft` 플래그 구현(matplotlib 선택 의존, 실패 시 exit 2), 비디오 컨테이너 FFT를 ffmpeg 1프레임 추출로 지원, 항상 0.0이던 죽은 필드 `high_freq_anomaly_score` 제거, "해시 일치 시 법적 증거능력 인정" 과단정 문구를 무결성 확인서 수준으로 교정, MD5/SHA-1 충돌 취약성 주석 추가, 미사용 `math` import 제거
+
 ## [1.0.1] — 2026-08-29
 
 2026-08 종합 리뷰(문서·정직성 9/10, korean-law-mcp 8/10, 스킬 6/10, 스크립트·훅 4/10, 패키징 3/10)에서 발견된 결함을 수리한 시리즈. 리뷰에서 "치명적"으로 분류된 5가지가 모두 해소됐다.

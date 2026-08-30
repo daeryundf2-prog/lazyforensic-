@@ -1,6 +1,6 @@
 ---
 name: deepfake-forensic-radar
-description: 2026년 8월 기준 딥페이크 생성(DiT/Flow Matching/실시간 아바타/음성복제)·탐지(DeepfakeBench 30종/UnivFD/DIRE/rPPG/각막반사/MLLM)·출처인증(C2PA/SynthID)·사법증거(성폭력처벌법 14조의2/SHA-256 무결성) 전수 기술 레이더 및 포렌식 분석 스킬.
+description: 2026년 8월 기준 딥페이크 생성(DiT/Flow Matching/실시간 아바타/음성복제)·탐지(DeepfakeBench/UnivFD/DIRE/rPPG/각막반사/MLLM)·출처인증(C2PA/SynthID)·사법증거(성폭력처벌법 14조의2/SHA-256 무결성) 전수 기술 레이더 및 포렌식 분석 스킬.
 ---
 
 # deepfake-forensic-radar: 딥페이크 통합 기술 레이더 & 포렌식 분석기
@@ -16,7 +16,7 @@ description: 2026년 8월 기준 딥페이크 생성(DiT/Flow Matching/실시간
 | 영역 | 레퍼런스 파일 | 핵심 내용 |
 | :--- | :--- | :--- |
 | **생성 & 합성 모델** | [`references/01_generation_synthesis.md`](references/01_generation_synthesis.md) | Wan2.1, HunyuanVideo, CogVideoX, Kling, LivePortrait(12.8ms), Hallo2(4K 1hr), EchoMimic, PuLID, InstantID, F5-TTS(RTF 0.15), CosyVoice 2, ComfyUI 13대 노드 전수 |
-| **탐지 & 생체 포렌식** | [`references/02_detection_forensics.md`](references/02_detection_forensics.md) | DeepfakeBench 30종, UnivFD(92.3%), DIRE(97.8%), NPR, F3-Net, SPSL, FakeShield(MLLM), rPPG 혈류 펄스, 각막 반사광 3D 광선 추적, 립싱크 위상차 |
+| **탐지 & 생체 포렌식** | [`references/02_detection_forensics.md`](references/02_detection_forensics.md) | DeepfakeBench 30종, UnivFD(92.3%), DIRE, NPR, F3-Net, SPSL, FakeShield(MLLM), rPPG 혈류 펄스, 각막 반사광 3D 광선 추적, 립싱크 위상차, 벤치마크 데이터셋 9종(FF++/Celeb-DF/DFDC/DF40/GenImage 등) |
 | **출처 인증 & 워터마크** | [`references/03_c2pa_watermarks.md`](references/03_c2pa_watermarks.md) | C2PA v1.3/v2.0 ISO JUMBF, Hard/Soft 바인딩, PKI 서명, SynthID(Text/Image/Video), Stable Signature VAE 각인, Tree-Ring 푸리에 노이즈 |
 | **국내외 사법 & 증거능력**| [`references/04_legal_and_court.md`](references/04_legal_and_court.md) | 성폭력처벌법 제14조의2(소지·시청죄 신설, 반포목적 삭제, 계속범 법리), 성인 신분위장수사(2025.06), 형소법 제310조의2/313조 SHA-256 무결성, Daubert 표준 |
 | **우회 기법 & 실전 한계** | [`references/05_evasion_and_limits.md`](references/05_evasion_and_limits.md) | 아날로그 재촬영(PRNU), 필름 그레인 주입, Latent Img2Img 저강도 세척, 적대적 섭동, Telegram/WhatsApp 4:2:0 압축 붕괴(50~65% 추락), ESL 역차별 |

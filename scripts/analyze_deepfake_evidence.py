@@ -10,7 +10,6 @@ and 2D FFT frequency spectrum anomaly checks.
 import argparse
 import hashlib
 import json
-import math
 import os
 import struct
 import sys
@@ -89,68 +88,139 @@ def scan_c2pa_jumbf(file_path: str) -> dict:
 
 
 def analyze_fft_spectrum(file_path: str) -> dict:
-    """Analyze 2D Fourier spectrum artifacts on image files."""
+    """Analyze 2D Fourier spectrum artifacts on image files.
+
+    For video containers, the first frame is extracted via ffmpeg (if
+    installed) and analyzed; without ffmpeg the check degrades to a note.
+    """
     result = {
         "analyzed": False,
-        "high_freq_anomaly_score": 0.0,
         "checkerboard_spikes_detected": False,
         "verdict_indicator": "INCONCLUSIVE",
         "notes": []
     }
-    
+
     try:
         from PIL import Image
         import numpy as np
-        
-        img = Image.open(file_path).convert('L')
+
+        try:
+            img = Image.open(file_path)
+            img.load()
+            img = img.convert('L')
+        except Exception:
+            img = None
+            result["notes"].append("Not a decodable image — attempting first-frame extraction for video container")
+
+        if img is None:
+            import shutil
+            import subprocess
+            import tempfile
+
+            ffmpeg = shutil.which("ffmpeg")
+            if ffmpeg is None:
+                result["notes"].append("ffmpeg not installed — FFT skipped for video file")
+                return result
+            with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
+                tmp_path = tmp.name
+            extract = subprocess.run(
+                [ffmpeg, "-y", "-loglevel", "error", "-i", str(file_path),
+                 "-frames:v", "1", tmp_path],
+                capture_output=True, timeout=60,
+            )
+            if extract.returncode != 0 or not os.path.exists(tmp_path) or os.path.getsize(tmp_path) == 0:
+                result["notes"].append("ffmpeg first-frame extraction failed — FFT skipped")
+                return result
+            img = Image.open(tmp_path).convert('L')
+            try:
+                os.remove(tmp_path)
+            except OSError:
+                pass
+
         img_np = np.array(img, dtype=np.float32)
         h, w = img_np.shape
-        
+
         # Center crop to 512x512 if larger
         if h > 512 or w > 512:
             ch, cw = h // 2, w // 2
             img_np = img_np[max(0, ch-256):min(h, ch+256), max(0, cw-256):min(w, cw+256)]
-            
+
         # Compute 2D FFT
         f_transform = np.fft.fft2(img_np)
         f_shift = np.fft.fftshift(f_transform)
         magnitude_spectrum = np.log(np.abs(f_shift) + 1.0)
-        
+
         # Measure high frequency energy vs center low frequency
         my, mx = magnitude_spectrum.shape[0] // 2, magnitude_spectrum.shape[1] // 2
         r_inner = min(my, mx) // 4
         r_outer = min(my, mx) // 2
-        
+
         y, x = np.ogrid[:magnitude_spectrum.shape[0], :magnitude_spectrum.shape[1]]
         dist_from_center = np.sqrt((x - mx)**2 + (y - my)**2)
-        
+
         low_freq_energy = np.mean(magnitude_spectrum[dist_from_center <= r_inner])
         high_freq_energy = np.mean(magnitude_spectrum[dist_from_center >= r_outer])
-        
+
         ratio = float(high_freq_energy / (low_freq_energy + 1e-6))
-        
+
         # Check standard deviation of high frequency band for unnatural spikes
         high_freq_std = float(np.std(magnitude_spectrum[dist_from_center >= r_outer]))
         checkerboard = high_freq_std > 1.85 and ratio > 0.45
-        
+
         result["analyzed"] = True
         result["high_freq_ratio"] = round(ratio, 4)
         result["high_freq_std"] = round(high_freq_std, 4)
         result["checkerboard_spikes_detected"] = checkerboard
-        
+
         if checkerboard:
             result["verdict_indicator"] = "SUSPECTED_SYNTHETIC_ARTIFACTS"
             result["notes"].append("Periodic checkerboard high-frequency spectral spikes detected (Deconvolution artifact indicator)")
         else:
             result["verdict_indicator"] = "NATURAL_SPECTRUM_PROFILE"
             result["notes"].append("Spectral radial power follows standard natural decay curve")
-            
+
     except ImportError:
         result["notes"].append("Pillow or NumPy not installed — skipped FFT computation")
     except Exception as e:
         result["notes"].append(f"FFT computation failed: {str(e)}")
-        
+
     return result
+
+
+def plot_fft_spectrum(file_path: str, output_path: str) -> bool:
+    """Render the 2D FFT log-magnitude spectrum of an image to a PNG.
+
+    Returns True when the plot was written, False when matplotlib or the
+    image decoder is unavailable (best-effort visualization).
+    """
+    try:
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+        import numpy as np
+        from PIL import Image
+    except ImportError:
+        print("matplotlib/Pillow not installed — cannot plot FFT spectrum.", file=sys.stderr)
+        return False
+
+    try:
+        img = Image.open(file_path).convert('L')
+        img_np = np.array(img, dtype=np.float32)[:1024, :1024]
+        f_transform = np.fft.fft2(img_np)
+        f_shift = np.fft.fftshift(f_transform)
+        magnitude = np.log(np.abs(f_shift) + 1.0)
+
+        fig, ax = plt.subplots(figsize=(8, 8))
+        ax.imshow(magnitude, cmap="inferno")
+        ax.set_title(f"2D FFT Log-Magnitude Spectrum\n{os.path.basename(file_path)}")
+        ax.axis("off")
+        fig.tight_layout()
+        fig.savefig(output_path, dpi=120)
+        plt.close(fig)
+        return True
+    except Exception as e:
+        print(f"FFT plot failed: {str(e)}", file=sys.stderr)
+        return False
 
 
 def generate_forensic_report(file_path: str) -> dict:
@@ -199,7 +269,7 @@ def format_markdown_report(data: dict) -> str:
 | **MD5** | `{h['md5']}` |
 
 > [!IMPORTANT]
-> 형사소송법 제310조의2 및 제313조에 따라, 압수 시점의 해시값과 상기 SHA-256 해시값이 100% 일치해야 법적 증거능력이 인정됩니다.
+> 형사소송법 제310조의2 및 제313조에 따라, 압수 시점의 해시값과 상기 SHA-256 해시값의 일치가 증거능력 심사의 전제 조건이 됩니다. 일치 여부와 채택 판단은 법원의 권한이며, 본 보고서는 무결성 확인서이지 채택을 보장하지 않습니다. (참고: MD5/SHA-1은 충돌 취약성이 알려져 있어 레거시 상호대조용으로만 쓰고, 무결성 증명은 SHA-256을 기준으로 합니다.)
 
 ---
 
@@ -224,7 +294,8 @@ def format_markdown_report(data: dict) -> str:
 ## 4. 사법 포렌식 종합 의견
 1. **증거 무결성**: 본 파일의 고유 SHA-256 해시(`{h['sha256'][:16]}...`)를 원본 보관 연속성 원장에 기록하여 사후 변조를 차단하십시오.
 2. **출처 판정**: C2PA 서명이 {'확인되었으므로 공식 인증 출처를 확인하십시오.' if c['c2pa_detected'] else '존재하지 않으므로, 소셜 미디어 재인코딩 이력 또는 로컬 생성 여부에 대한 정밀 다층 분석이 권장됩니다.'}
-3. **법정 제출 시 주의**: 단순 AI 탐지 스코어 단독 제출을 지양하고, 본 해시 감사표와 파일시스템  타임스탬프를 병합 제출하십시오.
+3. **법정 제출 시 주의**: 단순 AI 탐지 스코어 단독 제출을 지양하고, 본 해시 감사표와 파일시스템 타임스탬프(전자소송 ECFS 제출 이력 포함)를 병합 제출하십시오.
+4. **본 분석의 한계**: 본 보고서는 해시·메타데이터·주파수 스펙트럼의 1차 정량 측정이며, 단독으로 생성/원본을 확정하지 않는다. 최종 판정은 다중 탐지기 앙상블과 생체·물리 불변량 검증(레퍼런스 02 참조)을 거쳐야 한다.
 """
 
 
@@ -233,21 +304,29 @@ def main():
     parser.add_argument("file", help="Path to media file (image/video)")
     parser.add_argument("--output", "-o", help="Path to output markdown report")
     parser.add_argument("--json", action="store_true", help="Output raw JSON to stdout")
-    
+    parser.add_argument("--plot-fft", metavar="PNG_PATH",
+                        help="Save the 2D FFT log-magnitude spectrum plot to the given PNG path (matplotlib required)")
+
     args = parser.parse_args()
-    
+
     if not os.path.exists(args.file):
         print(f"Error: File '{args.file}' not found.", file=sys.stderr)
         sys.exit(1)
-        
+
     data = generate_forensic_report(args.file)
-    
+
+    if args.plot_fft:
+        if plot_fft_spectrum(args.file, args.plot_fft):
+            print(f"FFT spectrum plot written to: {args.plot_fft}")
+        else:
+            sys.exit(2)
+
     if args.json:
         print(json.dumps(data, indent=2, ensure_ascii=False))
         return
-        
+
     md = format_markdown_report(data)
-    
+
     if args.output:
         with open(args.output, 'w', encoding='utf-8') as f:
             f.write(md)
