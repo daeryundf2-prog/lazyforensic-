@@ -3,12 +3,14 @@
 # 자매 플러그인 레포로 동기화한다. 3레포가 같은 디렉터리에 클론되어 있을 때만 동작한다.
 #
 # 사용법: bash scripts/sync_guard_pack.sh
-# 캐노니컬: lazyforensic/scripts/{markdown_structure_guard,stop_claim_guard}.mjs
+# 캐노니컬: lazyforensic/scripts/{markdown_structure_guard,stop_claim_guard,coverage_audit}.mjs
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(dirname "$HERE")"
 PARENT="$(dirname "$ROOT")"
+
+GUARDS="markdown_structure_guard.mjs stop_claim_guard.mjs coverage_audit.mjs"
 
 for repo in lazyantigravity lazyothers; do
   target="$PARENT/$repo/scripts"
@@ -16,7 +18,7 @@ for repo in lazyantigravity lazyothers; do
     echo "[skip] $PARENT/$repo 가 없다 — 인접 클론이 아니다"
     continue
   fi
-  for guard in markdown_structure_guard.mjs stop_claim_guard.mjs; do
+  for guard in $GUARDS; do
     if [ ! -f "$ROOT/scripts/$guard" ]; then
       echo "[skip] 캐노니컬에 $guard 없음"
       continue

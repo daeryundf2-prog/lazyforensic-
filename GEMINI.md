@@ -52,6 +52,7 @@ ROLE ENVELOPE: mayFinalizeRun=false; mayModifyGlobalRunState=false; mustReturn=S
 - "명백히 입증", "법원에 유효", "유출 확정", "court-admissible", "Timestomping으로 단정"을 쓰지 않는다.
 - 증거 오디오는 명시적 `--upload-audio` 동의 없이 외부로 보내지 않는다.
 - **근거-결론 분리**: 모든 수치·해시·시각·조문은 스크립트 stdout / MCP 응답에만 근거한다. 근거 없으면 `미확인`으로 둔다. 추측으로 빈칸을 채우지 않는다.
+- **커버리지 주장은 감사 수신증으로만**: "전수/100% 커버리지" 류의 감사 결론은 `node scripts/coverage_audit.mjs --source <원문파일> --target <산출물…> --json <수신증.json>` 출력으로만 뒷받침한다. 감사 전에 원문을 반드시 파일로 저장하고, 원문 없는 감사(자체 생성 키워드 목록과의 대조)는 하지 않는다 — 도구가 `--source` 부재 시 실행을 거부한다. 수신증에는 항목별 원문 행 → 산출 위치 매핑이 남는다.
 - **부모 검증**: `forensic-report` 초안은 `Model: "pro"`가 `python scripts/verify_report.py <보고서> --evidence <audit.json>`로 재검증한다. `FAIL`이면 제출 금지.
 
 ## 스킬 라우팅

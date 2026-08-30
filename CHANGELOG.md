@@ -9,6 +9,7 @@
 - `scripts/markdown_structure_guard.mjs` 신설 + `hooks.json` PostToolUse(문서 쓰기·bash 리다이렉트)에 FAIL_CLOSED 배선: 생성 중 스트리핑(빈 링크 `[](`, 빈 불릿 `-  : `, 빈 강조, 고아 `$수식`, 미닫힘 코드펜스, 표 열 불일치)을 쓰기 직후 탐지해 재작성 강제. `--check` 일괄 모드는 CI 단계로도 편입. NTFS 속성명(`$MFT` 등)·인라인 코드 내 `$`는 오탐 제외.
 - `test/test_integration_invariants.py` 신설(레포 전체, 7개): (1) 모든 `skills/*/SKILL.md`가 GEMINI.md에 라우팅 등록돼 있는지(예외 목록 명시), (2) GEMINI.md가 참조하는 경로 실존, (3) Forensic 레인 헤더 수-표 행 수 일치, (4) 문서화된 python 명령의 스크립트 실존, (5) 문서화된 CLI 플래그의 스크립트 등록(--plot-fft 사례 재발 방지, 25개 문서화 명령 대상), (6) skills 트리 스트리핑 흔적 0건, (7) GAPS.md 정직 문서 유지.
 - CI 개선: `unittest discover` → `pytest`(기존 러너는 함수형 테스트를 수집하지 못해 CI가 절반만 검증하고 있었다), markdown guard CI 단계 추가.
+- `scripts/coverage_audit.mjs` 신설 (GUARD_PACK_VERSION 1.0.0) + pytest 6개(`test/test_coverage_audit.py`) + GEMINI.md 계약 규칙: "전수/100% 커버리지" 주장은 `--source` 원문 파일 기반 감사 수신증으로만 뒷받침한다. 원문 부재 시 실행 자체를 거부(exit 2)해 순환 감사를 구조적으로 차단하고, 수신증에 항목별 원문 행 → 산출 위치 매핑을 남긴다. 강한 키(숫자 포함·6자 이상) 우선 매칭으로 산출물 제목 오염에도 정확 판정. 표 헤더 행은 항목에서 제외. 딥페이크 사건 재현 픽스처에서 누락 항목(L8 Mochi, L9 Sora)을 정확히 지목하는 것까지 검증.
 - `scripts/sync_guard_pack.sh` 신설 — 캐노니컬 가드(lazyforensic) → lazyantigravity/lazyothers 동기화.
 - 리뷰 발견 즉시 수정: `02`의 `$1/f^\alpha$` 수식 잔존 손상 복원, `skills/lazyforensic/SKILL.md` 표 4행 열 불일치 복원, `ai-trace-detector`가 GEMINI.md/README에 미등록이던 통합 누락 등록(15레인).
 - 훅 배선 테스트 강화: markdown guard의 문서 쓰기·bash 양쪽 FAIL_CLOSED 배선까지 검증.
