@@ -65,7 +65,7 @@ ROLE ENVELOPE: mayFinalizeRun=false; mayModifyGlobalRunState=false; mustReturn=S
 
 사용자가 `설명서`, `도움말`, `명령어 알려줘`, `무엇을 할 수 있어?`라고 하면 `docs/USER_GUIDE.md`를 읽고 기능별 요청 예시를 보여준다. 도움말 요청만으로 분석이나 파일 생성을 시작하지 않는다.
 
-### Forensic (15 — BYO binary 래퍼는 `check_tool.py` 게이트 통과 시에만, 보고서/검증 계열 = 무조건 검증)
+### Forensic (16 — BYO binary 래퍼는 `check_tool.py` 게이트 통과 시에만, 보고서/검증 계열 = 무조건 검증)
 
 진입점은 `skills/lazyforensic/SKILL.md`다. BYO 래퍼는 바이너리/라이브러리 미포함이며, 없으면 결과 생성 안 함.
 
@@ -74,6 +74,7 @@ ROLE ENVELOPE: mayFinalizeRun=false; mayModifyGlobalRunState=false; mustReturn=S
 | 타임라인 HTML | `skills/forensic-timeline/SKILL.md` |
 | 생성/수정 시각, 해시 | `skills/forensic-audit/SKILL.md` |
 | 카카오톡 txt | `skills/kakao-chat-extractor/SKILL.md` |
+| 텔레그램 JSON | `skills/telegram-chat-extractor/SKILL.md` |
 | 감정서/보고서 초안 | `skills/forensic-report/SKILL.md` |
 | **보고서 검증 (무조건)** | `skills/report-guard/SKILL.md` |
 | CCTV/동영상 프레임 | `skills/forensic-video/SKILL.md` |
