@@ -127,13 +127,13 @@ function extractTarget(sources) {
 	return '';
 }
 
-const GUARD_KEYWORD_RE = /보고서|검토해줘|검증해줘|검증|할루시네이션|할루체크|팩트체크|거짓말검사|사실확인|무결성검사|verify|\/verify|\/할루체크|\/검증|법적.*검토/i;
+const GUARD_KEYWORD_RE = /보고서|감정서|소견서|의견서|진단서|확인서|분석서|결과서|검토해줘|검증해줘|검증|할루시네이션|할루체크|팩트체크|거짓말검사|사실확인|무결성검사|verify|\/verify|\/할루체크|\/검증|법적.*검토/i;
 const READ_CAP_BYTES = 2 * 1024 * 1024; // shouldGuard 내용 훑기 상한
 
 function shouldGuard(targetFile, rawTexts) {
 	const keywordHit = GUARD_KEYWORD_RE.test(rawTexts.join('\n'));
 	const reportExt = /\.(md|html|txt)$/i.test(targetFile);
-	const reportPathHint = /report|보고서|draft|초안/i.test(targetFile);
+	const reportPathHint = /report|보고서|감정서|소견서|의견서|진단서|확인서|draft|초안|analysis|opinion/i.test(targetFile);
 	if (keywordHit && reportExt) return true;
 	if (reportPathHint && reportExt) return true;
 	if (reportExt && fs.existsSync(targetFile)) {

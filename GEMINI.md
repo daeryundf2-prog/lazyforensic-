@@ -1,6 +1,6 @@
 # LazyForensic — Gemini / Antigravity
 
-호스트는 Google Antigravity, 기본 세션은 Gemini 3.7 Flash (High)다.
+호스트는 Google Antigravity, 기본 세션은 Gemini 3.8 / 3.7 Flash (High)다.
 이 플러그인은 증거 자료를 정리하고 보고서 초안을 만든다. 포렌식 획득이나 법원 제출 적격성을 보장하지 않는다.
 
 ## 도구
@@ -40,7 +40,7 @@ ROLE ENVELOPE: mayFinalizeRun=false; mayModifyGlobalRunState=false; mustReturn=S
 ```
 
 레인 힌트는 `hostEnforced=false`다. `flash`는 파싱·초안, `pro`는 스크립트 출력과 주장 대조, `flash_lite`는 작은 작업에 쓴다.
-세션 UI는 Gemini 3.7 Flash (High)를 유지한다. 호스트 `modelName`이 다르지 않으면 자식 모델이 바뀌었다고 말하지 않는다.
+세션 UI는 Gemini 3.8 / 3.7 Flash (High)를 유지한다. 호스트 `modelName`이 다르지 않으면 자식 모델이 바뀌었다고 말하지 않는다.
 
 ## 실패 폐쇄 (할루시네이션 차단 — 최우선)
 

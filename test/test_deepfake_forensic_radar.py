@@ -5,7 +5,20 @@ import sys
 import tempfile
 import importlib.util
 from pathlib import Path
-import pytest
+import unittest
+
+try:
+    import pytest
+except ImportError:
+    class _MockPytest:
+        @staticmethod
+        def importorskip(modname):
+            import importlib
+            try:
+                return importlib.import_module(modname)
+            except ImportError:
+                raise unittest.SkipTest(f"{modname} not installed")
+    pytest = _MockPytest()
 
 ROOT = Path(__file__).resolve().parents[1]
 SKILL_ROOT = ROOT / 'skills' / 'deepfake-forensic-radar'
@@ -206,16 +219,69 @@ def test_readmd_documents_the_analyzer():
 # --plot-fft 실동작 (matplotlib 필요)
 # ---------------------------------------------------------------------------
 
-def test_plot_fft_writes_png(tmp_path):
+def test_plot_fft_writes_png(tmp_path=None):
     pytest.importorskip('matplotlib')
     pytest.importorskip('PIL')
     import numpy as np
     from PIL import Image
 
+    if tmp_path is None:
+        with tempfile.TemporaryDirectory() as tmp:
+            _run_fft_test(Path(tmp))
+    else:
+        _run_fft_test(tmp_path)
+
+def _run_fft_test(tmp_path):
+    import numpy as np
+    from PIL import Image
     src = tmp_path / 'evidence.png'
     Image.fromarray((np.random.rand(128, 128) * 255).astype('uint8')).save(src)
     out = tmp_path / 'fft.png'
-
     rc = analyzer.plot_fft_spectrum(str(src), str(out))
     assert rc is True
     assert out.exists() and out.stat().st_size > 0
+
+
+class TestDeepfakeForensicRadar(unittest.TestCase):
+    def test_skill_structure_and_references(self):
+        test_skill_structure_and_references()
+
+    def test_calculate_hashes(self):
+        test_calculate_hashes()
+
+    def test_c2pa_scanner_and_signatures(self):
+        test_c2pa_scanner_and_signatures()
+
+    def test_forensic_report_generation(self):
+        test_forensic_report_generation()
+
+    def test_jpeg_app11_c2pa_detection(self):
+        test_jpeg_app11_c2pa_detection()
+
+    def test_mp4_isobmff_c2pa_box_detection(self):
+        test_mp4_isobmff_c2pa_box_detection()
+
+    def test_c2pa_absent_is_reported_clean(self):
+        test_c2pa_absent_is_reported_clean()
+
+    def test_skill_documented_cli_flags_exist_in_script(self):
+        test_skill_documented_cli_flags_exist_in_script()
+
+    def test_references_have_no_stripped_content(self):
+        test_references_have_no_stripped_content()
+
+    def test_references_cover_previously_missing_items(self):
+        test_references_cover_previously_missing_items()
+
+    def test_gemini_md_routes_the_skill(self):
+        test_gemini_md_routes_the_skill()
+
+    def test_readmd_documents_the_analyzer(self):
+        test_readmd_documents_the_analyzer()
+
+    def test_plot_fft_writes_png(self):
+        test_plot_fft_writes_png()
+
+
+if __name__ == '__main__':
+    unittest.main()
