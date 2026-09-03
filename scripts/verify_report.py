@@ -198,11 +198,18 @@ def load_evidence_hashes(evidence_paths: list[str]) -> set[str]:
     return hashes
 
 
+EVIDENCE_TAG_RE = re.compile(r"<evidence>(.*?)</evidence>", re.DOTALL)
+FABRICATED_AGENCY_RE = re.compile(
+    r"\b(?:디지털포렌식청|사이버수사처|국가포렌식연구원|사이버범죄특별수사처|경찰청사이버보안국)\b"
+)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Report hallucination guard — hard grounding verifier")
     parser.add_argument("report", help="Report draft path (.md/.html)")
     parser.add_argument("--evidence", nargs="*", default=[], help="Evidence files (audit json, audit_trail.jsonl, timeline json, etc.) for hash grounding")
     parser.add_argument("--timeline", help="Timeline events.json for timestamp grounding (optional)")
+    parser.add_argument("--morph-grounding", action="store_true", help="Kiwi 형태소 기반 증거-보고서 용어 일치도 검증 (Section 5.2)")
     parser.add_argument("--json", action="store_true", help="Output JSON result")
     parser.add_argument("--strict", action="store_true", help="Fail with exit 1 if warnings are detected")
     args = parser.parse_args(argv)
@@ -367,6 +374,54 @@ def main(argv=None):
             warnings.append(
                 f"판례 부호 의심: 비표준 사건부호 인용 '{code}' in {case_str} — 대법원 규격 사건부호 여부를 확인하십시오."
             )
+
+    # 5-3) 공공기관 및 수사기관 명칭 날조 검사 (Section 5.1 #2)
+    for m in FABRICATED_AGENCY_RE.finditer(text):
+        errors.append(f"공공기관 명칭 날조 발견: {m.group(0)} (Section 5.1 #2 실존하지 않는 수사/포렌식 기관)")
+
+    # 5-4) <evidence> 태그 인용 검증 (Section 3.2 #1 Evidence-First)
+    evidence_matches = EVIDENCE_TAG_RE.findall(text)
+    if evidence_matches:
+        combined_ev_text = ""
+        for ep in args.evidence:
+            p = Path(ep)
+            if p.is_file():
+                combined_ev_text += "\n" + p.read_text(encoding="utf-8", errors="replace")
+
+        for quote in evidence_matches:
+            q_strip = quote.strip()
+            if not q_strip:
+                errors.append("<evidence> 태그가 비어 있습니다. 증거 측정값을 채우십시오.")
+            elif combined_ev_text:
+                clean_q = re.sub(r"\s+", " ", q_strip)
+                clean_ev = re.sub(r"\s+", " ", combined_ev_text)
+                if clean_q not in clean_ev:
+                    errors.append(
+                        f"근거 인용 불일치: <evidence> 구절('{q_strip[:25]}...')이 제공된 증거 파일에 존재하지 않습니다."
+                    )
+
+    # 5-5) Kiwi 형태소 기반 포렌식 그라운딩 검증 (Section 5.2)
+    if args.morph_grounding and args.evidence:
+        try:
+            from scripts.korean_morph_forensic import calculate_forensic_grounding
+        except ImportError:
+            try:
+                from korean_morph_forensic import calculate_forensic_grounding
+            except ImportError:
+                calculate_forensic_grounding = None
+
+        if calculate_forensic_grounding is not None:
+            combined_ev = "\n".join(
+                Path(ep).read_text(encoding="utf-8", errors="replace")
+                for ep in args.evidence if Path(ep).is_file()
+            )
+            if combined_ev.strip():
+                grounding_res = calculate_forensic_grounding(combined_ev, text, threshold=0.55)
+                if not grounding_res["is_grounded"]:
+                    warnings.append(
+                        f"포렌식 형태소 그라운딩 미달 ({grounding_res['grounding_score']*100:.1f}% < 55%): "
+                        f"증거에 없는 추정 용어 다수 {grounding_res['unsupported_terms'][:5]}"
+                    )
 
     result = {
         "report": str(report_path),

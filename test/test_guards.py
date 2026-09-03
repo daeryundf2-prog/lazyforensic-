@@ -434,6 +434,57 @@ class StatutoryBoundsTests(unittest.TestCase):
             self.assertEqual(proc2.returncode, 1)
             self.assertIn("HALLUCINATION GUARD", proc2.stderr)
 
+    def test_verify_report_catches_fabricated_agency(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            report = Path(tmp) / "디지털포렌식_보고서.md"
+            report.write_text("# 감정 보고서\n본 사건은 디지털포렌식청 사이버수사팀에 이첩됨.\n", encoding="utf-8")
+            res = subprocess.run(
+                [sys.executable, str(ROOT / "scripts" / "verify_report.py"), str(report), "--json"],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                cwd=str(ROOT),
+            )
+            self.assertEqual(res.returncode, 1)
+            data = json.loads(res.stdout)
+            self.assertEqual(data["verdict"], "FAIL")
+            self.assertTrue(any("디지털포렌식청" in e and "공공기관 명칭 날조" in e for e in data["errors"]))
+
+    def test_verify_report_evidence_tag_attribution(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ev_file = Path(tmp) / "audit.json"
+            ev_hash = "a" * 64
+            ev_file.write_text(json.dumps({"sha256": ev_hash, "file": "target.bin"}), encoding="utf-8")
+
+            # Matching evidence tag passes
+            good_report = Path(tmp) / "good_report.md"
+            good_report.write_text(f"# 포렌식 보고서\n<evidence>{ev_hash}</evidence>\n해시값 일치 검증됨.\n", encoding="utf-8")
+            res_good = subprocess.run(
+                [sys.executable, str(ROOT / "scripts" / "verify_report.py"), str(good_report), "--evidence", str(ev_file), "--json"],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                cwd=str(ROOT),
+            )
+            self.assertEqual(res_good.returncode, 0)
+            data_good = json.loads(res_good.stdout)
+            self.assertEqual(data_good["verdict"], "PASS")
+
+            # Mismatched evidence tag fails
+            bad_report = Path(tmp) / "bad_report.md"
+            bad_report.write_text("# 포렌식 보고서\n<evidence>f" + "0" * 63 + "</evidence>\n조작 정황.\n", encoding="utf-8")
+            res_bad = subprocess.run(
+                [sys.executable, str(ROOT / "scripts" / "verify_report.py"), str(bad_report), "--evidence", str(ev_file), "--json"],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                cwd=str(ROOT),
+            )
+            self.assertEqual(res_bad.returncode, 1)
+            data_bad = json.loads(res_bad.stdout)
+            self.assertEqual(data_bad["verdict"], "FAIL")
+            self.assertTrue(any("근거 인용 불일치" in e for e in data_bad["errors"]))
+
 
 if __name__ == "__main__":
     unittest.main()

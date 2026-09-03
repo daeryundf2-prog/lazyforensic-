@@ -1,0 +1,206 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""korean_morph_forensic.py — Korean Morphological Forensic Term & Grounding Analyzer.
+
+Implements Section 5.2 of gemini_hallucination_mitigation_deep_dive.md.
+Leverages Kiwi (kiwipiepy) morphological analysis to:
+1. Extract content morphemes while stripping Korean agglutinative case markers and endings,
+   preventing lexical mismatch between raw forensic artifacts and report assertions.
+2. Register specialized digital forensic terminology into the Kiwi dictionary (e.g.,
+   디지털포렌식, 타임스탬프, 무결성, 해시값, 연계보관성, 프리페치, MFT, 슬랙공간).
+3. Compute grounding overlap between raw evidence files (events.json, audit_trail, txt logs)
+   and draft forensic reports, identifying ungrounded novel forensic claims.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import sys
+from pathlib import Path
+from typing import Any
+
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
+try:
+    from kiwipiepy import Kiwi
+    _HAS_KIWI = True
+except ImportError:
+    Kiwi = None
+    _HAS_KIWI = False
+
+FORENSIC_DOMAIN_TERMS = [
+    ("디지털포렌식", "NNG"),
+    ("포렌식", "NNG"),
+    ("타임스탬프", "NNG"),
+    ("타임스탬핑", "NNG"),
+    ("무결성", "NNG"),
+    ("해시값", "NNG"),
+    ("연계보관성", "NNG"),
+    ("증거능력", "NNG"),
+    ("증거인멸", "NNG"),
+    ("사본", "NNG"),
+    ("원본대조", "NNG"),
+    ("프리페치", "NNG"),
+    ("슬랙공간", "NNG"),
+    ("비인가", "NNG"),
+    ("침해사고", "NNG"),
+    ("접근기록", "NNG"),
+    ("로그기록", "NNG"),
+    ("이벤트로그", "NNG"),
+    ("레지스트리", "NNG"),
+    ("감정물", "NNG"),
+    ("감정서", "NNG"),
+    ("서증", "NNG"),
+    ("갑호증", "NNP"),
+    ("을호증", "NNP"),
+    ("병호증", "NNP"),
+    ("미측정", "NNG"),
+    ("미확인", "NNG"),
+]
+
+CONTENT_TAGS = {"NNG", "NNP", "NR", "SL", "SH", "SN"}
+
+_KIWI_INSTANCE = None
+
+
+def get_kiwi_instance():
+    global _KIWI_INSTANCE
+    if not _HAS_KIWI:
+        return None
+    if _KIWI_INSTANCE is None:
+        try:
+            k = Kiwi()
+            for word, tag in FORENSIC_DOMAIN_TERMS:
+                try:
+                    k.add_user_word(word, tag)
+                except Exception:
+                    pass
+            _KIWI_INSTANCE = k
+        except Exception:
+            _KIWI_INSTANCE = None
+    return _KIWI_INSTANCE
+
+
+def extract_forensic_morphemes(text: str, min_len: int = 2) -> list[str]:
+    """Extracts content morphemes stripping particles, case markers, and endings."""
+    if not text:
+        return []
+
+    kiwi = get_kiwi_instance()
+    if kiwi is not None:
+        try:
+            tokens = kiwi.tokenize(text)
+            results = []
+            for t in tokens:
+                if t.tag in CONTENT_TAGS and len(t.form) >= min_len:
+                    results.append(t.form)
+            return results
+        except Exception:
+            pass
+
+    # Regex fallback
+    particles = r"(?:은|는|이|가|을|를|의|에|에서|로|으로|와|과|도|만|에게|이나|나|으로서|으로써)$"
+    words = re.findall(r"[가-힣a-zA-Z0-9_]+", text)
+    fallback_tokens = []
+    for w in words:
+        stripped = re.sub(particles, "", w)
+        if len(stripped) >= min_len:
+            fallback_tokens.append(stripped)
+    return fallback_tokens
+
+
+def calculate_forensic_grounding(
+    evidence_text: str,
+    report_text: str,
+    threshold: float = 0.60,
+) -> dict[str, Any]:
+    """Calculates term grounding between raw forensic evidence and draft report."""
+    ev_terms = set(extract_forensic_morphemes(evidence_text))
+    rep_terms = set(extract_forensic_morphemes(report_text))
+
+    if not rep_terms:
+        return {
+            "grounding_score": 1.0,
+            "is_grounded": True,
+            "overlap_count": 0,
+            "report_term_count": 0,
+            "evidence_term_count": len(ev_terms),
+            "unsupported_terms": [],
+            "has_kiwi": _HAS_KIWI,
+        }
+
+    supported = rep_terms.intersection(ev_terms)
+    unsupported = sorted(list(rep_terms - ev_terms))
+    score = len(supported) / len(rep_terms)
+
+    return {
+        "grounding_score": round(score, 3),
+        "is_grounded": score >= threshold,
+        "overlap_count": len(supported),
+        "report_term_count": len(rep_terms),
+        "evidence_term_count": len(ev_terms),
+        "supported_terms": sorted(list(supported)),
+        "unsupported_terms": unsupported,
+        "has_kiwi": _HAS_KIWI,
+    }
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        description="Korean Morphological Forensic Term & Grounding Analyzer (Kiwi)"
+    )
+    parser.add_argument("--evidence", nargs="*", default=[], help="Evidence text or JSON files")
+    parser.add_argument("--report", help="Draft report file (.md, .txt, .html)")
+    parser.add_argument("--text", help="Direct text to extract morphemes from")
+    parser.add_argument("--threshold", type=float, default=0.60, help="Minimum grounding threshold")
+    parser.add_argument("--json", action="store_true", help="Output JSON result")
+    args = parser.parse_args(argv)
+
+    if args.text:
+        terms = extract_forensic_morphemes(args.text)
+        unique_terms = sorted(list(set(terms)))
+        if args.json:
+            print(json.dumps({"terms": unique_terms, "count": len(unique_terms)}, ensure_ascii=False, indent=2))
+        else:
+            print(f"[Forensic Morphemes ({len(unique_terms)})]: {unique_terms[:20]}")
+        return 0
+
+    if args.evidence and args.report:
+        report_path = Path(args.report)
+        if not report_path.is_file():
+            print(f"Error: Report file not found: {report_path}", file=sys.stderr)
+            return 2
+
+        evidence_chunks = []
+        for ep in args.evidence:
+            p = Path(ep)
+            if p.is_file():
+                evidence_chunks.append(p.read_text(encoding="utf-8", errors="replace"))
+
+        ev_combined = "\n".join(evidence_chunks)
+        rep_text = report_path.read_text(encoding="utf-8", errors="replace")
+
+        result = calculate_forensic_grounding(ev_combined, rep_text, threshold=args.threshold)
+        if args.json:
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+        else:
+            verdict = "PASS" if result["is_grounded"] else "WARN"
+            print(f"[{verdict}] Forensic Grounding: {result['grounding_score']*100:.1f}% (Threshold: {args.threshold*100:.0f}%)")
+            print(f"  - Overlap: {result['overlap_count']} / {result['report_term_count']} terms")
+            if result["unsupported_terms"]:
+                print(f"  - Novel Report Terms ({len(result['unsupported_terms'])}): {result['unsupported_terms'][:10]}")
+        return 0 if result["is_grounded"] else 1
+
+    parser.print_help()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
