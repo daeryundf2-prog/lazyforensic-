@@ -232,6 +232,17 @@ class HallucinationGuardTests(unittest.TestCase):
             data = json.loads(proc.stdout)
             self.assertTrue(any("한국사 사건/조약 날조" in e for e in data["errors"]))
 
+            # Hanja numerals, prefix 第, and single-occurrence treaties/reforms
+            report2 = Path(tmp) / "hist_fake2.md"
+            report2.write_text("第4次 甲午改革 및 제2차 을미개혁, 제2차 한일병합조약 기록이다.", encoding="utf-8")
+            proc2 = subprocess.run(
+                [sys.executable, str(ROOT / "scripts" / "verify_report.py"), str(report2), "--json"],
+                capture_output=True, text=True, encoding="utf-8", cwd=str(ROOT),
+            )
+            self.assertEqual(proc2.returncode, 1)
+            data2 = json.loads(proc2.stdout)
+            self.assertTrue(any("한국사 사건/조약 날조" in e for e in data2["errors"]))
+
     def test_verify_report_passes_valid_historical_events(self):
         with tempfile.TemporaryDirectory() as tmp:
             report = Path(tmp) / "hist_valid.md"
@@ -255,6 +266,29 @@ class HallucinationGuardTests(unittest.TestCase):
             self.assertEqual(proc.returncode, 1)
             data = json.loads(proc.stdout)
             self.assertTrue(any("불가능한 사법절차 날조" in e for e in data["errors"]))
+
+            # Long clause sentence
+            report2 = Path(tmp) / "proc_fake2.md"
+            report2.write_text("대검찰청 특별수사본부는 이번 사건과 관련하여 피의자들에 대해 약식명령을 청구하였다.", encoding="utf-8")
+            proc2 = subprocess.run(
+                [sys.executable, str(ROOT / "scripts" / "verify_report.py"), str(report2), "--json"],
+                capture_output=True, text=True, encoding="utf-8", cwd=str(ROOT),
+            )
+            self.assertEqual(proc2.returncode, 1)
+            data2 = json.loads(proc2.stdout)
+            self.assertTrue(any("불가능한 사법절차 날조" in e for e in data2["errors"]))
+
+    def test_verify_report_blocks_academic_citation_hallucinations(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            report = Path(tmp) / "academic_fake.md"
+            report.write_text("대한인공지능법학회지 및 홍길동 교수의 2099년 학술지 논문 인용에 근거함.", encoding="utf-8")
+            proc = subprocess.run(
+                [sys.executable, str(ROOT / "scripts" / "verify_report.py"), str(report), "--json"],
+                capture_output=True, text=True, encoding="utf-8", cwd=str(ROOT),
+            )
+            self.assertEqual(proc.returncode, 1)
+            data = json.loads(proc.stdout)
+            self.assertTrue(any("학술논문/학술지 날조" in e for e in data["errors"]))
 
     def test_verify_report_health_check_cli(self):
         proc = subprocess.run(
