@@ -10,6 +10,7 @@
 import json
 import os
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -218,6 +219,101 @@ class HallucinationGuardHookTests(unittest.TestCase):
             env={"TOOL_INPUT": json.dumps({"tool_input": {"file_path": "no/such/보고서.md"}})},
         )
         self.assertEqual(proc.returncode, 0)
+
+
+class MarkdownStructureGuardTests(unittest.TestCase):
+    def test_unclosed_evidence_tag_is_blocked(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            bad = Path(tmp) / "bad_evidence.md"
+            bad.write_text("# 보고서\n<evidence>원문 인용만 하고 닫지 않음\n", encoding="utf-8")
+            proc = run_guard("markdown_structure_guard.mjs", ["--check", str(bad)])
+            self.assertEqual(proc.returncode, 1)
+            self.assertIn("unclosed_evidence_tag", proc.stderr)
+
+    def test_empty_evidence_block_is_blocked(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            bad = Path(tmp) / "empty_evidence.md"
+            bad.write_text("# 보고서\n<evidence></evidence>\n답변 내용\n", encoding="utf-8")
+            proc = run_guard("markdown_structure_guard.mjs", ["--check", str(bad)])
+            self.assertEqual(proc.returncode, 1)
+            self.assertIn("empty_evidence_block", proc.stderr)
+
+    def test_broken_citation_token_is_blocked(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            bad = Path(tmp) / "broken_citation.md"
+            bad.write_text("# 보고서\n본문 내용【F:doc.pdf†L12】입니다.\n", encoding="utf-8")
+            proc = run_guard("markdown_structure_guard.mjs", ["--check", str(bad)])
+            self.assertEqual(proc.returncode, 1)
+            self.assertIn("broken_citation_token", proc.stderr)
+
+    def test_clean_markdown_passes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            clean = Path(tmp) / "clean.md"
+            clean.write_text("# 정상 보고서\n- 항목: 본문\n<evidence>인용</evidence><answer>답변</answer>\n", encoding="utf-8")
+            proc = run_guard("markdown_structure_guard.mjs", ["--check", str(clean)])
+            self.assertEqual(proc.returncode, 0)
+
+
+class StopClaimGuardTests(unittest.TestCase):
+    def test_unsupported_grand_claim_is_blocked(self):
+        payload = json.dumps({
+            "hook_event_name": "Stop",
+            "last_assistant_message": "모든 검증을 완벽하게 완료했습니다.",
+        })
+        proc = run_guard("stop_claim_guard.mjs", [], stdin_payload=payload)
+        self.assertEqual(proc.returncode, 0)
+        out = json.loads(proc.stdout)
+        self.assertEqual(out.get("decision"), "block")
+        self.assertIn("반증 가능한 증거", out.get("reason", ""))
+
+    def test_insufficient_data_strict_abstention_passes(self):
+        payload = json.dumps({
+            "hook_event_name": "Stop",
+            "last_assistant_message": "[INSUFFICIENT_DATA] 분석을 완료했습니다.",
+        })
+        proc = run_guard("stop_claim_guard.mjs", [], stdin_payload=payload)
+        self.assertEqual(proc.returncode, 0)
+        self.assertEqual(proc.stdout.strip(), "{}")
+
+    def test_fact_retracing_gate_blocks_phantom_files(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            payload = json.dumps({
+                "hook_event_name": "Stop",
+                "cwd": tmp,
+                "last_assistant_message": "테스트 10 passed. 산출물: results/phantom_artifact.json 생성을 완료했습니다.",
+            })
+            proc = run_guard("stop_claim_guard.mjs", [], stdin_payload=payload)
+            self.assertEqual(proc.returncode, 0)
+            out = json.loads(proc.stdout)
+            self.assertEqual(out.get("decision"), "block")
+            self.assertIn("Fact-Retracing", out.get("reason", ""))
+
+    def test_hooks_json_has_stop_hooks(self):
+        hooks_path = ROOT / "hooks.json"
+        data = json.loads(hooks_path.read_text(encoding="utf-8"))
+        hooks = data.get("hooks", {})
+        self.assertIn("Stop", hooks)
+        self.assertIn("SubagentStop", hooks)
+        stop_cmd = hooks["Stop"][0]["hooks"][0]["command"]
+        self.assertIn("stop_claim_guard.mjs", stop_cmd)
+
+
+class StatutoryBoundsTests(unittest.TestCase):
+    def test_verify_report_blocks_out_of_bounds_statute(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            report = Path(tmp) / "legal_report.md"
+            report.write_text("# 법률 분석서\n민법 제1500조에 의하여 피고는 책임을 진다. 출처: korean_law\n", encoding="utf-8")
+            res = subprocess.run(
+                [sys.executable, str(ROOT / "scripts" / "verify_report.py"), str(report), "--json"],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                cwd=str(ROOT),
+            )
+            self.assertEqual(res.returncode, 1)
+            data = json.loads(res.stdout)
+            self.assertEqual(data["verdict"], "FAIL")
+            self.assertTrue(any("허위 조문 날조" in e for e in data["errors"]))
 
 
 if __name__ == "__main__":

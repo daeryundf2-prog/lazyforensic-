@@ -270,6 +270,25 @@ def main(argv=None):
         preview = ", ".join(citations[:3]) + (f" 외 {len(citations) - 3}" if len(citations) > 3 else "")
         warnings.append(f"조문 인용({preview})이 있으나 korean_law MCP 출처 표기 없음 — MCP 응답과 대조 전까지 미확인으로 둘 것")
 
+    # 5-1) 법령 조문 상한 경계 검사 (허위 조문 날조 FAIL 차단)
+    STATUTE_BOUNDS = {
+        "민법": 1118,
+        "형법": 372,
+        "개인정보보호법": 76,
+        "정보통신망법": 76,
+        "형사소송법": 493,
+        "민사소송법": 502,
+        "상법": 935,
+    }
+    for statute, max_art in STATUTE_BOUNDS.items():
+        pat = re.compile(rf"{statute}\s*제\s*(\d+)\s*조")
+        for m in pat.finditer(text):
+            art_num = int(m.group(1))
+            if art_num > max_art or art_num < 1:
+                errors.append(
+                    f"{statute} 허위 조문 날조 발견: 제{art_num}조 (현행 {statute}은 제1조~제{max_art}조까지만 존재함)"
+                )
+
     result = {
         "report": str(report_path),
         "encoding": encoding_used,
