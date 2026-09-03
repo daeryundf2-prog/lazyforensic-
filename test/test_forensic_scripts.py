@@ -524,6 +524,24 @@ class VerifyReportHardeningTests(unittest.TestCase):
             self.assertEqual(proc_fail.returncode, 1, proc_fail.stderr)
             self.assertIn("Claim Ledger 위반", proc_fail.stderr)
 
+    def test_fabricated_agency_with_korean_particles_fails(self):
+        proc1 = self._run("사이버수사처와 긴밀하게 공조하여 조사를 마쳤다.")
+        self.assertEqual(proc1.returncode, 1, proc1.stderr)
+        self.assertIn("공공기관 명칭 날조", proc1.stderr)
+
+        proc2 = self._run("디지털포렌식청과 회의를 진행했다.")
+        self.assertEqual(proc2.returncode, 1, proc2.stderr)
+        self.assertIn("공공기관 명칭 날조", proc2.stderr)
+
+    def test_obsolete_ministry_with_successor_annotation_or_allow_historical(self):
+        # With current successor annotation, it downgrades to warning and does not exit 1
+        proc_annotated = self._run("정보통신부(현 과학기술정보통신부) 2005년 고시를 참조함.")
+        self.assertEqual(proc_annotated.returncode, 0, proc_annotated.stderr)
+
+        # With --allow-historical flag, obsolete ministry is tolerated as warning
+        proc_historical = self._run("정보통신부 2005년 기준에 따름.", extra=["--allow-historical"])
+        self.assertEqual(proc_historical.returncode, 0, proc_historical.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()

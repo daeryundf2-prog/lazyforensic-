@@ -45,6 +45,8 @@ INVALID_COUNTER_VALUES = {"n/a", "na", "-", "—", "none", "null", "", "없음",
 
 def extract_registrable_domain(hostname: str) -> str:
     clean = hostname.lower().strip()
+    if re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", clean):
+        return clean
     if clean.startswith("www."):
         clean = clean[4:]
     parts = clean.split(".")
@@ -80,25 +82,71 @@ def extract_forensic_artifacts(text: str) -> list[str]:
     hashes = re.findall(r"\b[a-fA-F0-9]{32,64}\b", text)
     for h in hashes:
         artifacts.add(h.lower()[:16])  # unique prefix
-    # Distinct forensic artifact file extensions / log sources
-    file_matches = re.findall(r"[\w.-]+\.(?:evtx|mft|pcap|pcapng|raw|dd|E01|json|jsonl|txt|log|csv)\b", text, re.IGNORECASE)
+    # Distinct forensic artifact file extensions / log sources / databases
+    file_matches = re.findall(
+        r"(?:\$?[A-Za-z0-9_.-]+|\b[\w.-]+)\.(?:evtx|mft|pcap|pcapng|raw|dd|e01|json|jsonl|txt|log|csv|pf|reg|dat|sqlite|db|vhdx|vmdk)\b",
+        text,
+        re.IGNORECASE,
+    )
     for f in file_matches:
         artifacts.add(f.lower())
+    # Special NTFS system artifacts
+    special_matches = re.findall(r"\$(?:MFT|LogFile|UsnJrnl|Boot|Volume|Extend)\b", text, re.IGNORECASE)
+    for s in special_matches:
+        artifacts.add(s.lower())
     return sorted(list(artifacts))
 
 
+def _split_markdown_row(line: str) -> list[str]:
+    content = line.strip()
+    if content.startswith("|"):
+        content = content[1:]
+    if content.endswith("|"):
+        content = content[:-1]
+    raw_cells = re.split(r"(?<!\\)\|", content)
+    return [c.strip().replace(r"\|", "|") for c in raw_cells]
+
+
 def parse_markdown_table(markdown: str) -> list[dict[str, str]]:
-    lines = [l.strip() for l in markdown.splitlines() if l.strip().startswith("|") and l.strip().endswith("|")]
-    if len(lines) < 2:
+    """Locates and parses the Claim Ledger table, ignoring unrelated tables or preambles."""
+    blocks: list[list[str]] = []
+    current_block: list[str] = []
+
+    for line in markdown.splitlines():
+        trimmed = line.strip()
+        if trimmed.startswith("|") and ("|" in trimmed[1:] or trimmed.endswith("|")):
+            current_block.append(trimmed)
+        else:
+            if current_block:
+                blocks.append(current_block)
+                current_block = []
+    if current_block:
+        blocks.append(current_block)
+
+    claim_re = re.compile(r"claim|주장|항목", re.IGNORECASE)
+    status_re = re.compile(r"status|상태", re.IGNORECASE)
+
+    target_block = None
+    for block in blocks:
+        if len(block) >= 2:
+            headers = [c.lower() for c in _split_markdown_row(block[0])]
+            if any(claim_re.search(h) for h in headers) and any(status_re.search(h) for h in headers):
+                target_block = block
+                break
+
+    if not target_block and blocks:
+        target_block = blocks[0]
+
+    if not target_block or len(target_block) < 2:
         return []
 
-    header_cells = [c.strip().lower() for c in lines[0][1:-1].split("|")]
+    header_cells = [c.lower() for c in _split_markdown_row(target_block[0])]
     rows: list[dict[str, str]] = []
 
-    for line in lines[1:]:
-        if re.match(r"^\|[\s\-:|]+\|$", line):
+    for line in target_block[1:]:
+        if re.match(r"^\|?[\s\-:|]+\|?$", line):
             continue
-        cells = [c.strip() for c in line[1:-1].split("|")]
+        cells = _split_markdown_row(line)
         row_dict: dict[str, str] = {}
         for idx, h in enumerate(header_cells):
             if idx < len(cells):

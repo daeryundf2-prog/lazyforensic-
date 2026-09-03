@@ -149,6 +149,17 @@ function shouldGuard(targetFile, rawTexts) {
 	return false;
 }
 
+function ledgerCandidate(targetFile) {
+	const dir = path.dirname(path.resolve(targetFile));
+	const candidates = [
+		join(dir, 'claim-ledger.md'),
+		join(dir, 'claim_ledger.md'),
+		join(process.cwd(), 'claim-ledger.md'),
+		join(process.cwd(), 'claim_ledger.md'),
+	];
+	return candidates.find((p) => fs.existsSync(p));
+}
+
 // evidence 자동 탐색: audit.json 3곳 + 이 플러그인 자신이 기록하는 감사 로그
 function evidenceCandidates(targetFile) {
 	const dir = path.dirname(path.resolve(targetFile));
@@ -215,9 +226,13 @@ async function main() {
 	}
 
 	const evidence = evidenceCandidates(targetFile);
+	const ledger = ledgerCandidate(targetFile);
 	const args = [verifyScript, targetFile];
 	if (evidence.length > 0) {
 		args.push('--evidence', ...evidence, '--morph-grounding');
+	}
+	if (ledger) {
+		args.push('--claim-ledger', ledger);
 	}
 
 	const { res, spawnError, attempts } = runVerify(args);

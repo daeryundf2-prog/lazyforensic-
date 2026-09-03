@@ -91,10 +91,30 @@ def test_synthesis_report_citation_lock_rejects_refuted_and_unresolved():
 def test_file_level_forensic_ledger_verification(tmp_path):
     ledger_file = tmp_path / "claim-ledger.md"
     ledger_file.write_text(VALID_FORENSIC_LEDGER, encoding="utf-8")
-
     report_file = tmp_path / "report.md"
     report_file.write_text("결론: [Claim 1]이 검증됨.", encoding="utf-8")
 
     report = vcl.verify_claim_ledger_file(ledger_file, synthesis_path=report_file)
     assert report["ok"] is True
     assert report["totalClaims"] == 3
+
+
+def test_forensic_claim_ledger_with_preamble_and_extended_artifacts():
+    ledger_with_preamble = """
+# Case Overview
+| Property | Value |
+|---|---|
+| Investigator | Chief Examiner |
+| Unit | Cyber Forensic Team |
+
+## Claims
+| Claim | Risk Level | Sources (2+ Domains / Artifacts) | Counter-Search / Falsification | Primary Source | Status |
+|---|---|---|---|---|:---:|
+| [Claim 1] 실행 흔적 발견 | High | winlogon.pf, forensic.sqlite, $MFT | 레지스트리 비활성 가설 반증 | e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 | `VERIFIED` |
+| [Claim 2] IP 기반 외부 유출 | Med | http://192.168.1.10/log, https://external-leak.com/data | 내부 루프백 반증 완료 | 192.168.1.10.pcap | `VERIFIED` |
+"""
+    res = vcl.validate_claim_ledger(ledger_with_preamble)
+    assert res["ok"] is True
+    assert res["totalClaims"] == 2
+    assert res["verifiedCount"] == 2
+    assert len(res["violations"]) == 0

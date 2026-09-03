@@ -199,8 +199,15 @@ def load_evidence_hashes(evidence_paths: list[str]) -> set[str]:
 
 
 EVIDENCE_TAG_RE = re.compile(r"<evidence(?:\s+[^>]*)?>(.*?)</evidence>", re.DOTALL | re.IGNORECASE)
+
+KOREAN_PARTICLE_SUFFIX = (
+    r"(?:장관|차관|처장|청장|국장|위원장|부장|령|고시|지침|규정)?"
+    r"(?:[이가은는을를의에]|에서|에게|서|과|와|도|만|부터|까지|로|으로|란|이란|라|라는|이라|이라는|며|이며|고|이고|통해|대해|관해)?"
+    r"(?![가-힣])"
+)
+
 FABRICATED_AGENCY_RE = re.compile(
-    r"(?<![가-힣])(?P<agency>디지털포렌식청|사이버수사처|국가포렌식연구원|사이버범죄특별수사처|경찰청사이버보안국|사이버보안청|인공지능윤리청|국가데이터청|개인정보보호청|사이버테러수사본부|정보보호조사위원회|디지털윤리위원회|한국연방검찰청|대검찰청사이버수사청)(?=[이가은는을를의에]|에서|으로|로|\s|[,\.!?\)]|$)"
+    rf"(?<![가-힣])(?P<agency>디지털포렌식청|사이버수사처|국가포렌식연구원|사이버범죄특별수사처|경찰청사이버보안국|사이버보안청|인공지능윤리청|국가데이터청|개인정보보호청|사이버테러수사본부|정보보호조사위원회|디지털윤리위원회|한국연방검찰청|대검찰청사이버수사청){KOREAN_PARTICLE_SUFFIX}"
 )
 
 ABOLISHED_GOV_AGENCIES: dict[str, tuple[str, str]] = {
@@ -238,6 +245,7 @@ def main(argv=None):
     parser.add_argument("--evidence", nargs="*", default=[], help="Evidence files (audit json, audit_trail.jsonl, timeline json, etc.) for hash grounding")
     parser.add_argument("--timeline", help="Timeline events.json for timestamp grounding (optional)")
     parser.add_argument("--claim-ledger", help="Optional path to claim-ledger.md for Section 6 verification")
+    parser.add_argument("--allow-historical", action="store_true", help="역사적 부처명 인용 허용 (오류 대신 경고 처리)")
     parser.add_argument("--morph-grounding", action="store_true", help="Kiwi 형태소 기반 증거-보고서 용어 일치도 검증 (Section 5.2)")
     parser.add_argument("--high-fidelity", action="store_true", help="Vertex AI High-Fidelity strict non-parametric grounding mode (Section 4.2)")
     parser.add_argument("--json", action="store_true", help="Output JSON result")
@@ -410,11 +418,23 @@ def main(argv=None):
         errors.append(f"공공기관 명칭 날조 발견: {m.group('agency')} (Section 5.1 #2 실존하지 않는 수사/포렌식 기관)")
 
     for agency, (abolish_info, successor) in ABOLISHED_GOV_AGENCIES.items():
-        pat = re.compile(rf"(?<![가-힣]){re.escape(agency)}(?:장관|차관|령|고시|지침)?(?=[이가은는을를의에]|에서|으로|로|\s|[,\.!?\)]|$)")
+        pat = re.compile(rf"(?<![가-힣]){re.escape(agency)}{KOREAN_PARTICLE_SUFFIX}")
         if pat.search(text):
-            errors.append(
-                f"정부기관 명칭 오류/날조 발견: 폐지된 구 부처명 인용 '{agency}' ({abolish_info}, 현행 '{successor}' 명칭 사용 필수) (Section 5.1 위반)"
+            successor_candidates = [s.strip() for s in re.split(r"또는|/|,", successor) if s.strip()]
+            has_successor_annotation = any(cand in text for cand in successor_candidates)
+            has_historical_marker = bool(
+                re.search(rf"\((?:구|과거)\s*{re.escape(agency)}\)", text)
+                or re.search(rf"{re.escape(agency)}\s*\((?:현|현행)", text)
             )
+
+            if has_successor_annotation or has_historical_marker or getattr(args, "allow_historical", False):
+                warnings.append(
+                    f"정부기관 역사적 구 부처명 인용: '{agency}' ({abolish_info}, 현행 '{successor}' 병기됨/역사적 검토 허용)"
+                )
+            else:
+                errors.append(
+                    f"정부기관 명칭 오류/날조 발견: 폐지된 구 부처명 인용 '{agency}' ({abolish_info}, 현행 '{successor}' 명칭 사용 필수) (Section 5.1 위반)"
+                )
 
     # 5-4) <evidence> 태그 인용 검증 (Section 3.2 #1 Evidence-First)
     evidence_matches = EVIDENCE_TAG_RE.findall(text)
