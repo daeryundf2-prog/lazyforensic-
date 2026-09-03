@@ -220,6 +220,53 @@ class HallucinationGuardTests(unittest.TestCase):
         self.assertIn("hallucination_guard", gemini)
         self.assertIn("무조건", router)
 
+    def test_verify_report_blocks_fabricated_historical_events(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            report = Path(tmp) / "hist_fake.md"
+            report.write_text("갑오개혁 4차 개혁안 및 제2차 을사조약 관련 포렌식 기록이다.", encoding="utf-8")
+            proc = subprocess.run(
+                [sys.executable, str(ROOT / "scripts" / "verify_report.py"), str(report), "--json"],
+                capture_output=True, text=True, encoding="utf-8", cwd=str(ROOT),
+            )
+            self.assertEqual(proc.returncode, 1)
+            data = json.loads(proc.stdout)
+            self.assertTrue(any("한국사 사건/조약 날조" in e for e in data["errors"]))
+
+    def test_verify_report_passes_valid_historical_events(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            report = Path(tmp) / "hist_valid.md"
+            report.write_text("제1차 갑오개혁 및 을사조약 체결 시점의 포렌식 기록 분석.", encoding="utf-8")
+            proc = subprocess.run(
+                [sys.executable, str(ROOT / "scripts" / "verify_report.py"), str(report), "--json"],
+                capture_output=True, text=True, encoding="utf-8", cwd=str(ROOT),
+            )
+            self.assertEqual(proc.returncode, 0)
+            data = json.loads(proc.stdout)
+            self.assertEqual(len(data["errors"]), 0)
+
+    def test_verify_report_blocks_impossible_judicial_procedures(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            report = Path(tmp) / "proc_fake.md"
+            report.write_text("대검찰청의 약식명령 청구 및 경찰의 영장 직접 청구에 의해 압수수색이 진행되었다.", encoding="utf-8")
+            proc = subprocess.run(
+                [sys.executable, str(ROOT / "scripts" / "verify_report.py"), str(report), "--json"],
+                capture_output=True, text=True, encoding="utf-8", cwd=str(ROOT),
+            )
+            self.assertEqual(proc.returncode, 1)
+            data = json.loads(proc.stdout)
+            self.assertTrue(any("불가능한 사법절차 날조" in e for e in data["errors"]))
+
+    def test_verify_report_health_check_cli(self):
+        proc = subprocess.run(
+            [sys.executable, str(ROOT / "scripts" / "verify_report.py"), "--health-check", "--json"],
+            capture_output=True, text=True, encoding="utf-8", cwd=str(ROOT),
+        )
+        self.assertEqual(proc.returncode, 0)
+        data = json.loads(proc.stdout)
+        self.assertEqual(data["status"], "PASS")
+        self.assertEqual(data["score"], 100)
+        self.assertEqual(data["passed"], 10)
+
 
 if __name__ == "__main__":
     unittest.main()

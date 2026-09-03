@@ -34,12 +34,17 @@ description: 포렌식 감정서/보고서 초안. 측정값만 채운다. 의�
 4. **공공기관 명칭 날조 차단 (Section 5.1 #2)**: `디지털포렌식청`, `사이버수사처` 등 실존하지 않는 가짜 수사/포렌식 기관 날조를 차단합니다.
 5. **Kiwi 형태소 하이브리드 그라운딩 (Section 5.2)**: `kiwipiepy` 포렌식 전문 용어 사전을 통해 원본 증거와 보고서 간 형태소 어휘 일치도를 검증합니다 (`--morph-grounding`).
 6. **Vertex AI High-Fidelity 비파라메트릭 게이트 (Section 4.2)**: `--high-fidelity` 플래그 활성화 시, 원본 증거(`--evidence`)와 `<evidence>` 태그가 강제되며 형태소 그라운딩 70% 미달 시 즉시 차단합니다.
+7. **한국사 사건 및 조약 날조 차단 (Section 5.1 #3)**: `갑오개혁 4차`, `제2차 을사조약`, `3차 동학농민운동` 등 실존하지 않는 역사 차수 및 사건 날조를 차단합니다.
+8. **불가능한 사법 절차 날조 차단 (Section 5.1 #4)**: `대검찰청의 약식명령 청구`, `경찰의 영장 직접 청구`, `경찰의 직접 기소`, `헌법재판소의 징역형 선고` 등 실정법상 성립 불가능한 절차를 기계적으로 차단합니다.
 
 ```bash
 # 부모가 반드시 재실행하는 검증 (High-Fidelity 비파라메트릭 모드)
 python skills/forensic-audit/scripts/audit_timestamps.py "증거파일" --json > audit.json  # 측정
 python scripts/verify_report.py "보고서초안.md" --evidence audit.json --timeline events.json --morph-grounding --high-fidelity --strict --json
 # exit 1이면 금지문구/근거없는 해시/미지원 조문/High-Fidelity 미달 → 수정 없이 제출 금지
+
+# 포렌식 사실성 종합 헬스체크 (Section 5.1 및 7-8 전수 10대 카테고리 100점 감사)
+python scripts/verify_report.py --health-check --json
 
 # Kiwi 형태소 포렌식 그라운딩 단독 감사
 python scripts/korean_morph_forensic.py --evidence audit.json --report "보고서초안.md" --high-fidelity --json
