@@ -276,18 +276,45 @@ def main(argv=None):
         "형법": 372,
         "개인정보보호법": 76,
         "정보통신망법": 76,
+        "정보통신망 이용촉진 및 정보보호 등에 관한 법률": 76,
+        "부정경쟁방지법": 18,
+        "부정경쟁방지 및 영업비밀보호에 관한 법률": 18,
+        "전자문서법": 37,
+        "전자문서 및 전자거래 기본법": 37,
         "형사소송법": 493,
         "민사소송법": 502,
         "상법": 935,
+        "행정소송법": 46,
+        "근로기준법": 116,
     }
     for statute, max_art in STATUTE_BOUNDS.items():
-        pat = re.compile(rf"{statute}\s*제\s*(\d+)\s*조")
+        pat = re.compile(rf"{re.escape(statute)}\s*제\s*(\d+)\s*조(?:\s*의\s*(\d+))?")
         for m in pat.finditer(text):
             art_num = int(m.group(1))
+            full_ref = m.group(0)
             if art_num > max_art or art_num < 1:
                 errors.append(
-                    f"{statute} 허위 조문 날조 발견: 제{art_num}조 (현행 {statute}은 제1조~제{max_art}조까지만 존재함)"
+                    f"{statute} 허위 조문 날조 발견: {full_ref} (현행 {statute}은 제1조~제{max_art}조까지만 존재함)"
                 )
+
+    # 5-2) 판례 연도 검사 (미래 연도 판결 날조 FAIL 차단)
+    PRECEDENT_RE = re.compile(
+        r"(?:대법원|서울고등법원|서울중앙지방법원|[가-힣]{2,6}지방법원|[가-힣]{2,6}고등법원|헌법재판소)?\s*"
+        r"(?P<year>\d{4})\s*(?P<code>[가-힣]{1,4})\s*(?P<num>\d+)\b"
+    )
+    for m in PRECEDENT_RE.finditer(text):
+        year = int(m.group("year"))
+        code = m.group("code")
+        num = m.group("num")
+        case_str = f"{year}{code}{num}"
+        if year > 2026:
+            errors.append(
+                f"판례 허위 날조 발견: 미래 연도 판결 인용 {case_str} (현재 2026년 이후 판결은 존재할 수 없음)"
+            )
+        elif year < 1948:
+            errors.append(
+                f"판례 허위 날조 발견: 대한민국 사법부 수립 이전 판결 {case_str} (1948년 이전)"
+            )
 
     result = {
         "report": str(report_path),

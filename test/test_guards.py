@@ -315,6 +315,43 @@ class StatutoryBoundsTests(unittest.TestCase):
             self.assertEqual(data["verdict"], "FAIL")
             self.assertTrue(any("허위 조문 날조" in e for e in data["errors"]))
 
+    def test_verify_report_blocks_fabricated_trade_secret_and_network_laws(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            report = Path(tmp) / "trade_secret_report.md"
+            report.write_text(
+                "# 포렌식 감정서\n부정경쟁방지 및 영업비밀보호에 관한 법률 제50조 및 "
+                "정보통신망 이용촉진 및 정보보호 등에 관한 법률 제120조 위반 혐의. 출처: korean_law\n",
+                encoding="utf-8",
+            )
+            res = subprocess.run(
+                [sys.executable, str(ROOT / "scripts" / "verify_report.py"), str(report), "--json"],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                cwd=str(ROOT),
+            )
+            self.assertEqual(res.returncode, 1)
+            data = json.loads(res.stdout)
+            self.assertEqual(data["verdict"], "FAIL")
+            self.assertTrue(any("부정경쟁방지 및 영업비밀보호에 관한 법률" in e for e in data["errors"]))
+            self.assertTrue(any("정보통신망 이용촉진 및 정보보호 등에 관한 법률" in e for e in data["errors"]))
+
+    def test_verify_report_blocks_future_precedent(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            report = Path(tmp) / "future_case_report.md"
+            report.write_text("# 감정의견서\n대법원 2035도99999 판결에 따라 증거능력이 인정된다. 출처: korean_law\n", encoding="utf-8")
+            res = subprocess.run(
+                [sys.executable, str(ROOT / "scripts" / "verify_report.py"), str(report), "--json"],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                cwd=str(ROOT),
+            )
+            self.assertEqual(res.returncode, 1)
+            data = json.loads(res.stdout)
+            self.assertEqual(data["verdict"], "FAIL")
+            self.assertTrue(any("미래 연도 판결" in e for e in data["errors"]))
+
 
 if __name__ == "__main__":
     unittest.main()
