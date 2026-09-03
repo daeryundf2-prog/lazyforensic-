@@ -26,9 +26,15 @@ description: 파일 생성/수정/접근 시각과 SHA-256이 필요할 때. os.
 ## 실행
 
 ```bash
+# 기본 측정 (표준 출력)
 python skills/forensic-audit/scripts/audit_timestamps.py "대상파일.ext"
+
+# 보고서 검증용 원본 증거 JSON 산출 (verify_report.py의 필수 grounding 근거)
+python skills/forensic-audit/scripts/audit_timestamps.py "대상파일.ext" --json > audit.json
 ```
 
-## Antigravity / Gemini
+## Antigravity / Gemini & Report Grounding Gate
 
-스크립트 stdout을 그대로 인용한다. C>M을 조작으로 올리지 않는다. 검증 레인은 `invoke_subagent` `Model: "pro"`.
+- 스크립트 stdout 또는 `audit.json`을 그대로 인용한다. C>M을 조작으로 올리지 않는다.
+- 본 스킬에서 측정된 SHA-256/시각은 `verify_report.py`의 `--evidence audit.json`으로 전달되어야 하며, 측정되지 않은 임의의 해시가 보고서에 포함되면 호스트 가드(`hallucination_guard.mjs`)에 의해 작성이 즉각 차단됩니다.
+- 검증 레인은 `invoke_subagent` `Model: "pro"`.

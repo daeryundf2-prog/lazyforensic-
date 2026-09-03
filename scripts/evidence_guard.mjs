@@ -61,7 +61,7 @@ function tryParseJson(text) {
 // tool_input 에서 경로/명령에 해당하는 키의 문자열 값만 수집한다.
 // content/쓰기 본문은 스캔하지 않는다 — 보고서 본문에 "evidence/", "image.raw" 가
 // 언급되는 것만으로 쓰기가 차단되는 과차단을 막기 위함이다.
-const PATHISH_KEY_RE = /^(file_path|filepath|file|filename|target|output|path|command|cmd|command_line|commandline|script|args)$/i;
+const PATHISH_KEY_RE = /^(file_path|filepath|file|filename|target|target_file|targetfile|target_path|targetpath|output|path|command|cmd|command_line|commandline|script|args)$/i;
 
 function deepCollectPathish(node, out) {
 	if (Array.isArray(node)) {
@@ -180,7 +180,7 @@ function findViolation(texts) {
 // PostToolUse: 대상 파일 추정 (환경변수 > JSON 경로 키 > 유니코드 경로 정규식 > argv)
 // ---------------------------------------------------------------------------
 
-const TARGET_KEY_RE = /^(file_path|filepath|target|output)$/i;
+const TARGET_KEY_RE = /^(file_path|filepath|path|target|target_file|targetfile|target_path|targetpath|output)$/i;
 // \S 기반이므로 한글/공백 포함 경로도 매칭된다 (구버전 [\w\-\.] 은 ASCII 한정이었다)
 const PATH_LIKE_RE = /([^\s"'`<>|;&]+[\/\\][^\s"'`<>|;&]+\.(?:md|html|txt|json|csv|png|mp4))/i;
 const REDIRECT_RE = /(?:>|>>)\s*([^\s|&;]+(?:\.(?:md|html|txt|json)))/i;

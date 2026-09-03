@@ -204,6 +204,7 @@ def main(argv=None):
     parser.add_argument("--evidence", nargs="*", default=[], help="Evidence files (audit json, audit_trail.jsonl, timeline json, etc.) for hash grounding")
     parser.add_argument("--timeline", help="Timeline events.json for timestamp grounding (optional)")
     parser.add_argument("--json", action="store_true", help="Output JSON result")
+    parser.add_argument("--strict", action="store_true", help="Fail with exit 1 if warnings are detected")
     args = parser.parse_args(argv)
 
     report_path = Path(args.report)
@@ -302,6 +303,27 @@ def main(argv=None):
         r"(?:대법원|서울고등법원|서울중앙지방법원|[가-힣]{2,6}지방법원|[가-힣]{2,6}고등법원|헌법재판소)?\s*"
         r"(?P<year>\d{4})\s*(?P<code>[가-힣]{1,4})\s*(?P<num>\d+)\b"
     )
+    VALID_CASE_CODES = {
+        # 민사
+        "가단", "가합", "가소", "나", "다", "라", "마", "그", "바", "자", "차",
+        # 보전처분 / 민사신청
+        "카", "카단", "카합", "카기", "카담", "카조", "카열", "카경",
+        # 형사
+        "고단", "고합", "고약", "노", "도", "로", "모", "오", "보", "코",
+        # 가사소송 및 가사비송
+        "드", "드단", "드합", "르", "르단", "르합", "므", "스", "으",
+        "느", "느단", "느합", "즈", "즈단", "즈합",
+        # 도산 / 회생 / 파산
+        "회단", "회합", "회개", "개회", "개단", "개합", "하단", "하합", "하면", "개확",
+        # 행정 / 특허
+        "구", "구합", "구단", "누", "두", "루", "무", "허",
+        # 헌법재판소
+        "헌가", "헌나", "헌다", "헌라", "헌마", "헌바", "헌사", "헌아",
+        # 소년보호
+        "푸", "버",
+        # 재심
+        "재가단", "재가합", "재다", "재나", "재도", "재노", "재고단", "재고합",
+    }
     for m in PRECEDENT_RE.finditer(text):
         year = int(m.group("year"))
         code = m.group("code")
@@ -314,6 +336,10 @@ def main(argv=None):
         elif year < 1948:
             errors.append(
                 f"판례 허위 날조 발견: 대한민국 사법부 수립 이전 판결 {case_str} (1948년 이전)"
+            )
+        if code not in VALID_CASE_CODES:
+            warnings.append(
+                f"판례 부호 의심: 비표준 사건부호 인용 '{code}' in {case_str} — 대법원 규격 사건부호 여부를 확인하십시오."
             )
 
     result = {
@@ -341,10 +367,14 @@ def main(argv=None):
             print(f"[WARN] {len(warnings)} warnings (통과하나 부모가 Model pro로 대조 필요)")
             for w in warnings:
                 print(f"  - {w}")
+            if args.strict:
+                print(f"[FAIL] --strict 모드: 경고가 감지되어 차단합니다.", file=sys.stderr)
         else:
             print("[PASS] 할루시네이션 검증 통과 — 근거 없는 금지 문구/해시 없음")
 
-    return 1 if errors else 0
+    if errors or (args.strict and warnings):
+        return 1
+    return 0
 
 
 if __name__ == "__main__":

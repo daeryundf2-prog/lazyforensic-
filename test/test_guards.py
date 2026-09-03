@@ -352,6 +352,52 @@ class StatutoryBoundsTests(unittest.TestCase):
             self.assertEqual(data["verdict"], "FAIL")
             self.assertTrue(any("미래 연도 판결" in e for e in data["errors"]))
 
+    def test_verify_report_warns_on_nonstandard_case_code_and_strict_blocks(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            report = Path(tmp) / "unusual_case_report.md"
+            report.write_text("# 포렌식 의견서\n서울중앙지방법원 2024쀍12345 결정 참조. 출처: korean_law\n", encoding="utf-8")
+            # Normal mode: WARN (exit 0)
+            res = subprocess.run(
+                [sys.executable, str(ROOT / "scripts" / "verify_report.py"), str(report), "--json"],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                cwd=str(ROOT),
+            )
+            self.assertEqual(res.returncode, 0)
+            data = json.loads(res.stdout)
+            self.assertEqual(data["verdict"], "WARN")
+            self.assertTrue(any("비표준 사건부호" in w for w in data["warnings"]))
+
+            # Strict mode: exit 1
+            res_strict = subprocess.run(
+                [sys.executable, str(ROOT / "scripts" / "verify_report.py"), str(report), "--strict"],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                cwd=str(ROOT),
+            )
+            self.assertEqual(res_strict.returncode, 1)
+
+    def test_evidence_guard_recognizes_target_file_key(self):
+        proc = run_guard(
+            "evidence_guard.mjs", ["pre-tool-use"],
+            env={"TOOL_INPUT": json.dumps({"TargetFile": "evidence/firmware.bin"})},
+        )
+        self.assertEqual(proc.returncode, 1)
+        self.assertIn("BLOCKED", proc.stderr)
+
+    def test_hallucination_guard_recognizes_target_file_key(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            bad_report = Path(tmp) / "침해사고_보고서.md"
+            bad_report.write_text("# 침해사고 조사 보고서\n피고는 민법 제1500조에 따라 배상해야 한다.", encoding="utf-8")
+            proc = run_guard(
+                "hallucination_guard.mjs",
+                stdin_payload=json.dumps({"TargetFile": str(bad_report), "CodeContent": "..."}),
+            )
+            self.assertEqual(proc.returncode, 1)
+            self.assertIn("HALLUCINATION GUARD", proc.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()
