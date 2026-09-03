@@ -88,6 +88,18 @@ def get_kiwi_instance():
     return _KIWI_INSTANCE
 
 
+FORENSIC_PROCEDURAL_TERMS = {
+    "감정", "감정서", "감정보고서", "보고서", "감정인", "분석관", "수사관", "의뢰인", "의뢰기관", "의뢰",
+    "사건", "사건명", "개요", "목적", "방법", "대상", "대상물", "증거물", "감정물", "결과", "감정결과",
+    "분석", "분석결과", "분석내용", "의견", "종합의견", "종합", "결론", "첨부", "첨부서류", "목록", "별지", "순번",
+    "작성", "작성일자", "일자", "서명", "날인", "확인", "측정", "측정값", "검증", "검증됨", "판정", "비고",
+    "소속", "직급", "성명", "원본", "사본", "일치", "불일치", "정상", "보관", "연계", "수집", "도구",
+    "디지털", "포렌식", "디지털포렌식", "해시", "해시값", "타임스탬프", "타임스탬핑", "무결성", "sha", "md",
+    "파일", "파일명", "크기", "바이트", "생성", "수정", "접근", "시각", "시간", "기록", "로그", "항목",
+    "인", "귀하", "제출", "발급", "기관", "조사", "수사", "경찰", "경찰청", "검찰", "검찰청", "침해사고", "침해",
+}
+
+
 def extract_forensic_morphemes(text: str, min_len: int = 2) -> list[str]:
     """Extracts content morphemes stripping particles, case markers, and endings."""
     if not text:
@@ -99,8 +111,10 @@ def extract_forensic_morphemes(text: str, min_len: int = 2) -> list[str]:
             tokens = kiwi.tokenize(text)
             results = []
             for t in tokens:
-                if t.tag in CONTENT_TAGS and len(t.form) >= min_len:
-                    results.append(t.form)
+                clean_form = t.form.rstrip(".,;:-~`!@#$%^&*()[]{}")
+                if clean_form and len(clean_form) >= min_len and not re.match(r"^[0-9]+[.)]?$", t.form):
+                    if t.tag in CONTENT_TAGS:
+                        results.append(clean_form)
             return results
         except Exception:
             pass
@@ -110,9 +124,12 @@ def extract_forensic_morphemes(text: str, min_len: int = 2) -> list[str]:
     words = re.findall(r"[가-힣a-zA-Z0-9_]+", text)
     fallback_tokens = []
     for w in words:
+        if re.match(r"^[0-9]+[.)]?$", w):
+            continue
         stripped = re.sub(particles, "", w)
-        if len(stripped) >= min_len:
-            fallback_tokens.append(stripped)
+        clean_w = stripped.rstrip(".,;:-~`!@#$%^&*()[]{}")
+        if len(clean_w) >= min_len:
+            fallback_tokens.append(clean_w)
     return fallback_tokens
 
 
@@ -120,10 +137,13 @@ def calculate_forensic_grounding(
     evidence_text: str,
     report_text: str,
     threshold: float = 0.60,
+    filter_procedural: bool = False,
 ) -> dict[str, Any]:
     """Calculates term grounding between raw forensic evidence and draft report."""
     ev_terms = set(extract_forensic_morphemes(evidence_text))
     rep_terms = set(extract_forensic_morphemes(report_text))
+    if filter_procedural:
+        rep_terms = rep_terms - FORENSIC_PROCEDURAL_TERMS
 
     if not rep_terms:
         return {
@@ -160,6 +180,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--report", help="Draft report file (.md, .txt, .html)")
     parser.add_argument("--text", help="Direct text to extract morphemes from")
     parser.add_argument("--threshold", type=float, default=0.60, help="Minimum grounding threshold")
+    parser.add_argument("--filter-procedural", action="store_true", help="Filter standard forensic procedural/template terms")
     parser.add_argument("--high-fidelity", action="store_true", help="Enforce Vertex AI High-Fidelity strict non-parametric grounding")
     parser.add_argument("--json", action="store_true", help="Output JSON result")
     args = parser.parse_args(argv)
@@ -189,7 +210,9 @@ def main(argv: list[str] | None = None) -> int:
         rep_text = report_path.read_text(encoding="utf-8", errors="replace")
 
         eff_threshold = max(args.threshold, 0.70) if args.high_fidelity else args.threshold
-        result = calculate_forensic_grounding(ev_combined, rep_text, threshold=eff_threshold)
+        result = calculate_forensic_grounding(
+            ev_combined, rep_text, threshold=eff_threshold, filter_procedural=args.filter_procedural
+        )
         if args.high_fidelity:
             result["high_fidelity"] = True
 

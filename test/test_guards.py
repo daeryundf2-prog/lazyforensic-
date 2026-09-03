@@ -557,8 +557,37 @@ class StatutoryBoundsTests(unittest.TestCase):
             self.assertEqual(res3.returncode, 0)
             self.assertEqual(json.loads(res3.stdout)["verdict"], "PASS")
 
+            # 4. Realistic full template with headers, metadata, findings, and signatures passes
+            draft_full = Path(tmp) / "draft_full.md"
+            draft_full.write_text(f"""# 디지털 포렌식 감정보고서
+- 사건명: 침해사고 조사
+- 감정인: 김분석관
+- 의뢰기관: 서울지방경찰청
+
+## 1. 감정 대상물
+<evidence>{ev_hash}</evidence>
+대상 파일: case_sample.txt
+
+## 2. 감정결과
+대상 파일 case_sample.txt 의 SHA-256 해시값은 {ev_hash} 로 측정되었습니다.
+
+## 3. 종합의견
+본 감정물은 무결성이 확인되었습니다.
+감정인 서명: (인)
+""", encoding="utf-8")
+            res_full = subprocess.run(
+                [sys.executable, str(ROOT / "scripts" / "verify_report.py"), str(draft_full), "--evidence", str(ev_file), "--high-fidelity", "--json"],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                cwd=str(ROOT),
+            )
+            self.assertEqual(res_full.returncode, 0)
+            self.assertEqual(json.loads(res_full.stdout)["verdict"], "PASS")
+
 
 if __name__ == "__main__":
     unittest.main()
+
 
 

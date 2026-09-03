@@ -429,10 +429,19 @@ def main(argv=None):
                 for ep in args.evidence if Path(ep).is_file()
             )
             if combined_ev.strip():
-                clean_rep = re.sub(r"<[^>]+>", " ", text)
+                finding_section_match = re.search(
+                    r"(?:^|\n)\s*(?:#{1,4}\s*|\d+[\.\)]\s*|제\s*\d+\s*조?\s*|\b|【|\[)?\s*(?:\d+[\.\)]\s*)?"
+                    r"(?:감정\s*결과|감정\s*대상물|분석\s*내용|타임라인\s*분석|상세\s*분석|해시\s*검증|증거\s*분석)\b[^\n]*\n?"
+                    r"(.*?)"
+                    r"(?=\n#{1,2}\s*(?:종합\s*의견|의견|서명|결론|비고|첨부)|\Z)",
+                    text,
+                    re.DOTALL,
+                )
+                eval_target = finding_section_match.group(1) if finding_section_match else text
+                clean_rep = re.sub(r"<[^>]+>", " ", eval_target)
                 clean_ev = re.sub(r"<[^>]+>", " ", combined_ev)
                 thresh = 0.70 if args.high_fidelity else 0.55
-                grounding_res = calculate_forensic_grounding(clean_ev, clean_rep, threshold=thresh)
+                grounding_res = calculate_forensic_grounding(clean_ev, clean_rep, threshold=thresh, filter_procedural=True)
                 if not grounding_res["is_grounded"]:
                     msg = (
                         f"포렌식 형태소 그라운딩 미달 ({grounding_res['grounding_score']*100:.1f}% < {int(thresh*100)}%): "
