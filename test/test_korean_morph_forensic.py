@@ -51,3 +51,23 @@ def test_main_cli_with_temp_files(tmp_path):
 
     code = kmf.main(["--evidence", str(ev_file), "--report", str(rep_file), "--json"])
     assert code == 0
+
+
+def test_main_cli_high_fidelity(tmp_path):
+    ev_file = tmp_path / "evidence.txt"
+    ev_file.write_text("USB 저장장치 연결 시각 2024-01-01 10:00:00 시리얼 123456", encoding="utf-8")
+
+    # High fidelity pass
+    rep_pass = tmp_path / "report_pass.md"
+    rep_pass.write_text("USB 저장장치 연결 시각 2024-01-01 10:00:00 시리얼 123456 확인", encoding="utf-8")
+
+    code_pass = kmf.main(["--evidence", str(ev_file), "--report", str(rep_pass), "--high-fidelity", "--json"])
+    assert code_pass == 0
+
+    # High fidelity fail with ungrounded terms
+    rep_fail = tmp_path / "report_fail.md"
+    rep_fail.write_text("악성코드 유포 및 랜섬웨어 감염 정황 발견", encoding="utf-8")
+
+    code_fail = kmf.main(["--evidence", str(ev_file), "--report", str(rep_fail), "--high-fidelity", "--json"])
+    assert code_fail == 1
+

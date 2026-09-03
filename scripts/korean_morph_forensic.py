@@ -160,6 +160,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--report", help="Draft report file (.md, .txt, .html)")
     parser.add_argument("--text", help="Direct text to extract morphemes from")
     parser.add_argument("--threshold", type=float, default=0.60, help="Minimum grounding threshold")
+    parser.add_argument("--high-fidelity", action="store_true", help="Enforce Vertex AI High-Fidelity strict non-parametric grounding")
     parser.add_argument("--json", action="store_true", help="Output JSON result")
     args = parser.parse_args(argv)
 
@@ -187,12 +188,18 @@ def main(argv: list[str] | None = None) -> int:
         ev_combined = "\n".join(evidence_chunks)
         rep_text = report_path.read_text(encoding="utf-8", errors="replace")
 
-        result = calculate_forensic_grounding(ev_combined, rep_text, threshold=args.threshold)
+        eff_threshold = max(args.threshold, 0.70) if args.high_fidelity else args.threshold
+        result = calculate_forensic_grounding(ev_combined, rep_text, threshold=eff_threshold)
+        if args.high_fidelity:
+            result["high_fidelity"] = True
+
         if args.json:
             print(json.dumps(result, ensure_ascii=False, indent=2))
         else:
-            verdict = "PASS" if result["is_grounded"] else "WARN"
-            print(f"[{verdict}] Forensic Grounding: {result['grounding_score']*100:.1f}% (Threshold: {args.threshold*100:.0f}%)")
+            default_neg = "FAIL" if args.high_fidelity else "WARN"
+            verdict = "PASS" if result["is_grounded"] else default_neg
+            mode_label = " (High-Fidelity Mode)" if args.high_fidelity else ""
+            print(f"[{verdict}] Forensic Grounding{mode_label}: {result['grounding_score']*100:.1f}% (Threshold: {eff_threshold*100:.0f}%)")
             print(f"  - Overlap: {result['overlap_count']} / {result['report_term_count']} terms")
             if result["unsupported_terms"]:
                 print(f"  - Novel Report Terms ({len(result['unsupported_terms'])}): {result['unsupported_terms'][:10]}")

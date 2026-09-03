@@ -80,14 +80,19 @@ python skills/forensic-timeline/scripts/generate_timeline.py --input case/events
 # 3. 원본 파일 해시 감사 → audit.json (검증의 근거가 된다)
 python skills/forensic-audit/scripts/audit_timestamps.py case/카카오톡_대화내용.txt --json > case/audit.json
 
-# 4. 보고서 초안 작성 후 검증 — 근거 없는 해시/금지 문구는 FAIL
-python scripts/verify_report.py case/감정서초안.md --evidence case/audit.json --json
+# 4. 보고서 초안 작성 후 검증 — 근거 없는 해시/금지 문구/High-Fidelity 비파라메트릭 게이트
+python scripts/verify_report.py case/감정서초안.md --evidence case/audit.json --morph-grounding --high-fidelity --strict --json
+
+# 5. Kiwi 형태소 기반 포렌식 그라운딩 단독 감사
+python scripts/korean_morph_forensic.py --evidence case/audit.json --report case/감정서초안.md --high-fidelity --json
 ```
 
 검증기가 잡는 것 (실제 동작 확인):
 
 - 근거 없는 SHA-256/MD5 → `FAIL (근거 없는 해시 N개)`
 - `명백히 입증`, `법원에 유효`, `court-admissible` 등 과단정 문구 → `FAIL`
+- 법령 조문 상한(정보통신망법 76조 등) 및 미래 연도 판례 날조 차단
+- Vertex AI High-Fidelity 비파라메트릭 게이트 (`--high-fidelity`): 증거 원문 일치도 70% 미달 시 즉시 차단
 - 부정 문맥(`유출의심 아님`, `조작 가능성을 배제할 수 없다`)은 오탈 차단하지 않음
 - 인코딩이 UTF-16(Windows PowerShell 기본 출력)이어도 금지 문구를 읽어 낸다
 
@@ -98,7 +103,7 @@ python scripts/verify_report.py case/감정서초안.md --evidence case/audit.js
 | 카카오톡 텍스트 내보내기 파싱 (모바일/PC) | ✅ | 텍스트 내보내기만. SQLite/백업 DB ❌ |
 | 타임라인 HTML 렌더 (XSS 이스케이프, 샘플 거부) | ✅ | events.json 필요 |
 | 파일 MAC 시각 + SHA-256/MD5 감사 | ✅ | `os.stat` 표면값. `$MFT`/Timestomping 판정 ❌ |
-| 보고서 초안 검증 (금지 문구/해시 grounding) | ✅ | 해시-파일 결합 오류는 잡지 못함 |
+| 보고서 초안 검증 (금지 문구/해시/법령상한/High-Fidelity/형태소 그라운딩) | ✅ | `verify_report.py` (--evidence, --morph-grounding, --high-fidelity) |
 | EVTX 헌팅 (Hayabusa/Chainsaw) | 🟡 BYO | `python scripts/check_tool.py hayabusa.exe` 통과 시에만 |
 | MFT/Prefetch/Shimcache (Dissect/EZ-Tools) | 🟡 BYO | 실패 시 `error` 필드 + exit 3 ("0건" 위장 없음) |
 | 메모리 덤프 (MemProcFS/Volatility 3) | 🟡 BYO | 덤프+도구 모두 있을 때만 |

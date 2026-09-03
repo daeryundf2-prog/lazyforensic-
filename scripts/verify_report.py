@@ -210,6 +210,7 @@ def main(argv=None):
     parser.add_argument("--evidence", nargs="*", default=[], help="Evidence files (audit json, audit_trail.jsonl, timeline json, etc.) for hash grounding")
     parser.add_argument("--timeline", help="Timeline events.json for timestamp grounding (optional)")
     parser.add_argument("--morph-grounding", action="store_true", help="Kiwi 형태소 기반 증거-보고서 용어 일치도 검증 (Section 5.2)")
+    parser.add_argument("--high-fidelity", action="store_true", help="Vertex AI High-Fidelity strict non-parametric grounding mode (Section 4.2)")
     parser.add_argument("--json", action="store_true", help="Output JSON result")
     parser.add_argument("--strict", action="store_true", help="Fail with exit 1 if warnings are detected")
     args = parser.parse_args(argv)
@@ -405,8 +406,15 @@ def main(argv=None):
                     "--evidence 파일이 제공되지 않았거나 비어 있습니다. 증거 파일을 지정하십시오."
                 )
 
-    # 5-5) Kiwi 형태소 기반 포렌식 그라운딩 검증 (Section 5.2)
-    if args.morph_grounding and args.evidence:
+    # 5-5) Vertex AI High-Fidelity 비파라메트릭 게이트 (Section 4.2)
+    if args.high_fidelity:
+        if not args.evidence:
+            errors.append("[High-Fidelity Grounding 위반] High-Fidelity 검증을 위한 원문/증거(--evidence)가 지정되지 않았습니다.")
+        elif not evidence_matches:
+            errors.append("[High-Fidelity Grounding 위반] 증거 기반 사실관계를 뒷받침하는 <evidence> 원문 인용 태그가 없습니다.")
+
+    # 5-6) Kiwi 형태소 기반 포렌식 그라운딩 검증 (Section 5.2 & 4.2)
+    if (args.morph_grounding or args.high_fidelity) and args.evidence:
         try:
             from scripts.korean_morph_forensic import calculate_forensic_grounding
         except ImportError:
@@ -423,12 +431,17 @@ def main(argv=None):
             if combined_ev.strip():
                 clean_rep = re.sub(r"<[^>]+>", " ", text)
                 clean_ev = re.sub(r"<[^>]+>", " ", combined_ev)
-                grounding_res = calculate_forensic_grounding(clean_ev, clean_rep, threshold=0.55)
+                thresh = 0.70 if args.high_fidelity else 0.55
+                grounding_res = calculate_forensic_grounding(clean_ev, clean_rep, threshold=thresh)
                 if not grounding_res["is_grounded"]:
-                    warnings.append(
-                        f"포렌식 형태소 그라운딩 미달 ({grounding_res['grounding_score']*100:.1f}% < 55%): "
+                    msg = (
+                        f"포렌식 형태소 그라운딩 미달 ({grounding_res['grounding_score']*100:.1f}% < {int(thresh*100)}%): "
                         f"증거에 없는 추정 용어 다수 {grounding_res['unsupported_terms'][:5]}"
                     )
+                    if args.high_fidelity:
+                        errors.append(f"[High-Fidelity Grounding 위반] {msg}")
+                    else:
+                        warnings.append(msg)
 
     result = {
         "report": str(report_path),

@@ -507,7 +507,58 @@ class StatutoryBoundsTests(unittest.TestCase):
             self.assertEqual(data_no_ev["verdict"], "FAIL")
             self.assertTrue(any("근거 인용 검증 불가" in e for e in data_no_ev["errors"]))
 
+    def test_high_fidelity_grounding_gate(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ev_file = Path(tmp) / "audit.json"
+            ev_hash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ev_file.write_text(json.dumps({
+                "file": "case_sample.txt",
+                "sha256": ev_hash,
+                "created": "2024-01-01 10:00:00",
+                "modified": "2024-01-01 10:00:00",
+            }), encoding="utf-8")
+
+            # 1. Fails without --evidence
+            draft = Path(tmp) / "draft_no_ev.md"
+            draft.write_text(f"# 포렌식 보고서\n<evidence>{ev_hash}</evidence>\n", encoding="utf-8")
+            res1 = subprocess.run(
+                [sys.executable, str(ROOT / "scripts" / "verify_report.py"), str(draft), "--high-fidelity", "--json"],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                cwd=str(ROOT),
+            )
+            self.assertEqual(res1.returncode, 1)
+            self.assertTrue(any("원문/증거(--evidence)가 지정되지 않았습니다" in e for e in json.loads(res1.stdout)["errors"]))
+
+            # 2. Fails without <evidence> tag
+            draft2 = Path(tmp) / "draft_no_tag.md"
+            draft2.write_text(f"# 포렌식 보고서\n해시 {ev_hash} 측정됨.\n", encoding="utf-8")
+            res2 = subprocess.run(
+                [sys.executable, str(ROOT / "scripts" / "verify_report.py"), str(draft2), "--evidence", str(ev_file), "--high-fidelity", "--json"],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                cwd=str(ROOT),
+            )
+            self.assertEqual(res2.returncode, 1)
+            self.assertTrue(any("<evidence> 원문 인용 태그가 없습니다" in e for e in json.loads(res2.stdout)["errors"]))
+
+            # 3. Passes with <evidence> tag and valid matching evidence
+            draft3 = Path(tmp) / "draft_pass.md"
+            draft3.write_text(f"# 포렌식 보고서\n<evidence>{ev_hash}</evidence>\n해시 {ev_hash} 일치 확인.\n", encoding="utf-8")
+            res3 = subprocess.run(
+                [sys.executable, str(ROOT / "scripts" / "verify_report.py"), str(draft3), "--evidence", str(ev_file), "--high-fidelity", "--json"],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                cwd=str(ROOT),
+            )
+            self.assertEqual(res3.returncode, 0)
+            self.assertEqual(json.loads(res3.stdout)["verdict"], "PASS")
+
 
 if __name__ == "__main__":
     unittest.main()
+
 

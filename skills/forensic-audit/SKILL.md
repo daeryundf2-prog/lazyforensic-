@@ -36,5 +36,5 @@ python skills/forensic-audit/scripts/audit_timestamps.py "대상파일.ext" --js
 ## Antigravity / Gemini & Report Grounding Gate
 
 - 스크립트 stdout 또는 `audit.json`을 그대로 인용한다. C>M을 조작으로 올리지 않는다.
-- 본 스킬에서 측정된 SHA-256/시각은 `verify_report.py`의 `--evidence audit.json`으로 전달되어야 하며, 측정되지 않은 임의의 해시가 보고서에 포함되면 호스트 가드(`hallucination_guard.mjs`)에 의해 작성이 즉각 차단됩니다.
+- 본 스킬에서 측정된 SHA-256/시각은 `verify_report.py`의 `--evidence audit.json`으로 전달되어야 하며, High-Fidelity 비파라메트릭 모드(`--high-fidelity`) 및 Kiwi 형태소 그라운딩(`--morph-grounding`)을 통해 보고서 내 측정값과 용어의 실존 여부가 엄격히 차단/검증됩니다.
 - 검증 레인은 `invoke_subagent` `Model: "pro"`.

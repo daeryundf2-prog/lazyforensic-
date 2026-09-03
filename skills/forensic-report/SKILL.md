@@ -33,14 +33,20 @@ description: 포렌식 감정서/보고서 초안. 측정값만 채운다. 의�
 3. **법령 조문 및 판례 상한 경계 (Section 5.1 #1)**: 정보통신망법(76조), 형법(372조) 등 상한 및 판례 연도를 검증합니다.
 4. **공공기관 명칭 날조 차단 (Section 5.1 #2)**: `디지털포렌식청`, `사이버수사처` 등 실존하지 않는 가짜 수사/포렌식 기관 날조를 차단합니다.
 5. **Kiwi 형태소 하이브리드 그라운딩 (Section 5.2)**: `kiwipiepy` 포렌식 전문 용어 사전을 통해 원본 증거와 보고서 간 형태소 어휘 일치도를 검증합니다 (`--morph-grounding`).
+6. **Vertex AI High-Fidelity 비파라메트릭 게이트 (Section 4.2)**: `--high-fidelity` 플래그 활성화 시, 원본 증거(`--evidence`)와 `<evidence>` 태그가 강제되며 형태소 그라운딩 70% 미달 시 즉시 차단합니다.
 
 ```bash
-# 부모가 반드시 재실행하는 검증 (Model pro)
+# 부모가 반드시 재실행하는 검증 (High-Fidelity 비파라메트릭 모드)
 python skills/forensic-audit/scripts/audit_timestamps.py "증거파일" --json > audit.json  # 측정
-python scripts/verify_report.py "보고서초안.md" --evidence audit.json --timeline events.json --morph-grounding --json
-# exit 1이면 금지문구/근거없는 해시/미지원 조문 → 수정 없이 제출 금지
+python scripts/verify_report.py "보고서초안.md" --evidence audit.json --timeline events.json --morph-grounding --high-fidelity --strict --json
+# exit 1이면 금지문구/근거없는 해시/미지원 조문/High-Fidelity 미달 → 수정 없이 제출 금지
+
+# Kiwi 형태소 포렌식 그라운딩 단독 감사
+python scripts/korean_morph_forensic.py --evidence audit.json --report "보고서초안.md" --high-fidelity --json
 ```
 
 - 해시가 하나라도 있으면 `--evidence`로 audit/timeline을 넘겨야 함. 근거 없는 해시는 `FAIL`
 - 금지문구(`명백히 입증`, `법원에 유효`, `유출 확정`, `Timestomping으로 단정`, `court-admissible`) 포함 시 `FAIL`
 - Chain of Custody/시각이 없으면 `미측정`/`미확인`으로 둔다. 빈칸을 추측으로 채우지 않는다.
+- High-Fidelity 모드(`--high-fidelity`)에서는 증거 파일 및 `<evidence>` 인용 태그가 필수이며 70% 미달 시 차단됩니다.
+
