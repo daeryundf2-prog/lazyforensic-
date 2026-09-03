@@ -15,7 +15,7 @@
 		],
 		"PreToolUse": [
 			{
-				"matcher": "^(write_to_file|replace_file_content|apply_patch|write|edit|bash|execute_command|run_command)$",
+				"matcher": "^(write_to_file|WriteToFile|write_file|WriteFile|replace_file_content|ReplaceFileContent|apply_patch|write|Write|edit|Edit|bash|execute_command|run_command)$",
 				"hooks": [
 					{
 						"type": "command",
@@ -29,7 +29,7 @@
 		],
 		"PostToolUse": [
 			{
-				"matcher": "^(write_to_file|replace_file_content|apply_patch|write|edit|generate_document|fill_form)$",
+				"matcher": "^(write_to_file|WriteToFile|write_file|WriteFile|replace_file_content|ReplaceFileContent|apply_patch|write|Write|edit|Edit|generate_document|fill_form)$",
 				"hooks": [
 					{
 						"type": "command",

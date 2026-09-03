@@ -398,6 +398,43 @@ class StatutoryBoundsTests(unittest.TestCase):
             self.assertEqual(proc.returncode, 1)
             self.assertIn("HALLUCINATION GUARD", proc.stderr)
 
+    def test_verify_report_catches_spaced_statute(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            report = Path(tmp) / "개인정보_유출_보고서.md"
+            report.write_text("# 조사 보고서\n피고는 개인정보 보호법 제100조를 위반하여 고객 정보를 유출함.\n", encoding="utf-8")
+            res = subprocess.run(
+                [sys.executable, str(ROOT / "scripts" / "verify_report.py"), str(report), "--json"],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                cwd=str(ROOT),
+            )
+            self.assertEqual(res.returncode, 1)
+            data = json.loads(res.stdout)
+            self.assertEqual(data["verdict"], "FAIL")
+            self.assertTrue(any("개인정보" in e and "제100조" in e for e in data["errors"]))
+
+    def test_hallucination_guard_recognizes_file_and_filename_keys(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            bad_report = Path(tmp) / "침해사고_보고서.md"
+            bad_report.write_text("# 침해사고 조사 보고서\n피고는 근로 기준법 제120조 위반.", encoding="utf-8")
+            # Test 'file' key
+            proc1 = run_guard(
+                "hallucination_guard.mjs",
+                stdin_payload=json.dumps({"file": str(bad_report)}),
+            )
+            self.assertEqual(proc1.returncode, 1)
+            self.assertIn("HALLUCINATION GUARD", proc1.stderr)
+
+            # Test 'filename' key
+            proc2 = run_guard(
+                "hallucination_guard.mjs",
+                stdin_payload=json.dumps({"filename": str(bad_report)}),
+            )
+            self.assertEqual(proc2.returncode, 1)
+            self.assertIn("HALLUCINATION GUARD", proc2.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()
+

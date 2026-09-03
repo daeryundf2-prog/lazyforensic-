@@ -75,7 +75,7 @@ async function collectSources() {
 // 대상 추정: JSON 경로 키 > 리다이렉트/유니코드 경로 정규식 > argv 존재 검사
 // ---------------------------------------------------------------------------
 
-const TARGET_KEY_RE = /^(file_path|filepath|path|target|target_file|targetfile|target_path|targetpath|output)$/i;
+const TARGET_KEY_RE = /^(file_path|filepath|path|target|target_file|targetfile|target_path|targetpath|output|file|filename)$/i;
 // \S 기반 — 한글/공백 파일명도 매칭 (구버전 [\w\-\.] 은 ASCII 한정으로 한글 보고서를 놓쳤다)
 const PATH_LIKE_RE = /([^\s"'`<>|;&]+[\/\\][^\s"'`<>|;&]+\.(?:md|html|txt|json))/i;
 const REDIRECT_RE = /(?:>|>>)\s*([^\s|&;]+(?:\.(?:md|html|txt|json)))/i;

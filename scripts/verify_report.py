@@ -271,7 +271,7 @@ def main(argv=None):
         preview = ", ".join(citations[:3]) + (f" 외 {len(citations) - 3}" if len(citations) > 3 else "")
         warnings.append(f"조문 인용({preview})이 있으나 korean_law MCP 출처 표기 없음 — MCP 응답과 대조 전까지 미확인으로 둘 것")
 
-    # 5-1) 법령 조문 상한 경계 검사 (허위 조문 날조 FAIL 차단)
+    # 5-1) 법령 조문 상한 경계 검사 (허위 조문 날조 FAIL 차단, 공백 유연성 및 중복 스팬 제거)
     STATUTE_BOUNDS = {
         "민법": 1118,
         "형법": 372,
@@ -287,10 +287,36 @@ def main(argv=None):
         "상법": 935,
         "행정소송법": 46,
         "근로기준법": 116,
+        "특정금융정보법": 22,
+        "특정 금융거래정보의 보고 및 이용 등에 관한 법률": 22,
+        "전자상거래법": 45,
+        "전자상거래 등에서의 소비자보호에 관한 법률": 45,
+        "자본시장법": 449,
+        "자본시장과 금융투자업에 관한 법률": 449,
+        "신용정보법": 53,
+        "신용정보의 이용 및 보호에 관한 법률": 53,
+        "소비자기본법": 86,
+        "가사소송법": 72,
+        "특허법": 232,
+        "저작권법": 142,
     }
-    for statute, max_art in STATUTE_BOUNDS.items():
-        pat = re.compile(rf"{re.escape(statute)}\s*제\s*(\d+)\s*조(?:\s*의\s*(\d+))?")
+
+    def _make_statute_pattern(statute_name: str) -> re.Pattern:
+        clean_name = re.sub(r"\s+", "", statute_name)
+        escaped_chars = [re.escape(c) for c in clean_name]
+        pattern_str = r"\s*".join(escaped_chars) + r"\s*제\s*(\d+)\s*조(?:\s*의\s*(\d+))?"
+        return re.compile(pattern_str)
+
+    matched_spans: list[tuple[int, int]] = []
+    sorted_statutes = sorted(STATUTE_BOUNDS.items(), key=lambda x: len(x[0]), reverse=True)
+
+    for statute, max_art in sorted_statutes:
+        pat = _make_statute_pattern(statute)
         for m in pat.finditer(text):
+            span = m.span()
+            if any(s <= span[0] and span[1] <= e for s, e in matched_spans):
+                continue
+            matched_spans.append(span)
             art_num = int(m.group(1))
             full_ref = m.group(0)
             if art_num > max_art or art_num < 1:
