@@ -217,7 +217,7 @@ async function main() {
 	const evidence = evidenceCandidates(targetFile);
 	const args = [verifyScript, targetFile];
 	if (evidence.length > 0) {
-		args.push('--evidence', ...evidence);
+		args.push('--evidence', ...evidence, '--morph-grounding');
 	}
 
 	const { res, spawnError, attempts } = runVerify(args);

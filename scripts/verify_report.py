@@ -198,7 +198,7 @@ def load_evidence_hashes(evidence_paths: list[str]) -> set[str]:
     return hashes
 
 
-EVIDENCE_TAG_RE = re.compile(r"<evidence>(.*?)</evidence>", re.DOTALL)
+EVIDENCE_TAG_RE = re.compile(r"<evidence(?:\s+[^>]*)?>(.*?)</evidence>", re.DOTALL | re.IGNORECASE)
 FABRICATED_AGENCY_RE = re.compile(
     r"\b(?:디지털포렌식청|사이버수사처|국가포렌식연구원|사이버범죄특별수사처|경찰청사이버보안국)\b"
 )
@@ -399,6 +399,11 @@ def main(argv=None):
                     errors.append(
                         f"근거 인용 불일치: <evidence> 구절('{q_strip[:25]}...')이 제공된 증거 파일에 존재하지 않습니다."
                     )
+            else:
+                errors.append(
+                    f"근거 인용 검증 불가: <evidence> 구절('{q_strip[:25]}...')이 있으나 "
+                    "--evidence 파일이 제공되지 않았거나 비어 있습니다. 증거 파일을 지정하십시오."
+                )
 
     # 5-5) Kiwi 형태소 기반 포렌식 그라운딩 검증 (Section 5.2)
     if args.morph_grounding and args.evidence:
@@ -416,7 +421,9 @@ def main(argv=None):
                 for ep in args.evidence if Path(ep).is_file()
             )
             if combined_ev.strip():
-                grounding_res = calculate_forensic_grounding(combined_ev, text, threshold=0.55)
+                clean_rep = re.sub(r"<[^>]+>", " ", text)
+                clean_ev = re.sub(r"<[^>]+>", " ", combined_ev)
+                grounding_res = calculate_forensic_grounding(clean_ev, clean_rep, threshold=0.55)
                 if not grounding_res["is_grounded"]:
                     warnings.append(
                         f"포렌식 형태소 그라운딩 미달 ({grounding_res['grounding_score']*100:.1f}% < 55%): "

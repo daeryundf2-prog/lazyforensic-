@@ -480,10 +480,32 @@ class StatutoryBoundsTests(unittest.TestCase):
                 encoding="utf-8",
                 cwd=str(ROOT),
             )
-            self.assertEqual(res_bad.returncode, 1)
-            data_bad = json.loads(res_bad.stdout)
-            self.assertEqual(data_bad["verdict"], "FAIL")
-            self.assertTrue(any("근거 인용 불일치" in e for e in data_bad["errors"]))
+            # Attributed evidence tag passes when matching
+            attr_report = Path(tmp) / "attr_report.md"
+            attr_report.write_text(f'# 포렌식 보고서\n<evidence source="audit.json">{ev_hash}</evidence>\n해시값 일치 검증됨.\n', encoding="utf-8")
+            res_attr = subprocess.run(
+                [sys.executable, str(ROOT / "scripts" / "verify_report.py"), str(attr_report), "--evidence", str(ev_file), "--json"],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                cwd=str(ROOT),
+            )
+            self.assertEqual(res_attr.returncode, 0)
+            data_attr = json.loads(res_attr.stdout)
+            self.assertEqual(data_attr["verdict"], "PASS")
+
+            # Evidence tag without --evidence files fails closed
+            res_no_ev = subprocess.run(
+                [sys.executable, str(ROOT / "scripts" / "verify_report.py"), str(good_report), "--json"],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                cwd=str(ROOT),
+            )
+            self.assertEqual(res_no_ev.returncode, 1)
+            data_no_ev = json.loads(res_no_ev.stdout)
+            self.assertEqual(data_no_ev["verdict"], "FAIL")
+            self.assertTrue(any("근거 인용 검증 불가" in e for e in data_no_ev["errors"]))
 
 
 if __name__ == "__main__":
