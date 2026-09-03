@@ -200,8 +200,36 @@ def load_evidence_hashes(evidence_paths: list[str]) -> set[str]:
 
 EVIDENCE_TAG_RE = re.compile(r"<evidence(?:\s+[^>]*)?>(.*?)</evidence>", re.DOTALL | re.IGNORECASE)
 FABRICATED_AGENCY_RE = re.compile(
-    r"\b(?:디지털포렌식청|사이버수사처|국가포렌식연구원|사이버범죄특별수사처|경찰청사이버보안국)\b"
+    r"(?<![가-힣])(?P<agency>디지털포렌식청|사이버수사처|국가포렌식연구원|사이버범죄특별수사처|경찰청사이버보안국|사이버보안청|인공지능윤리청|국가데이터청|개인정보보호청|사이버테러수사본부|정보보호조사위원회|디지털윤리위원회|한국연방검찰청|대검찰청사이버수사청)(?=[이가은는을를의에]|에서|으로|로|\s|[,\.!?\)]|$)"
 )
+
+ABOLISHED_GOV_AGENCIES: dict[str, tuple[str, str]] = {
+    "정보통신부": ("2008년 폐지", "과학기술정보통신부 또는 방송통신위원회"),
+    "문화공보부": ("1990년 폐지", "문화체육관광부"),
+    "재정경제원": ("1998년 폐지", "기획재정부"),
+    "재정경제부": ("2008년 개편", "기획재정부"),
+    "미래창조과학부": ("2017년 개편", "과학기술정보통신부"),
+    "과학기술처": ("1998년 개편", "과학기술정보통신부"),
+    "과학기술부": ("2008년 개편", "과학기술정보통신부"),
+    "교육인적자원부": ("2008년 개편", "교육부"),
+    "교육과학기술부": ("2013년 개편", "교육부"),
+    "건설교통부": ("2008년 개편", "국토교통부"),
+    "국토해양부": ("2013년 개편", "국토교통부"),
+    "행정자치부": ("2017년 개편", "행정안전부"),
+    "안전행정부": ("2014년 개편", "행정안전부"),
+    "국민안전처": ("2017년 개편", "행정안전부/소방청/해양경찰청"),
+    "산업자원부": ("2008년 개편", "산업통상자원부"),
+    "지식경제부": ("2013년 개편", "산업통상자원부"),
+    "상공자원부": ("1994년 개편", "산업통상자원부"),
+    "동력자원부": ("1993년 개편", "산업통상자원부"),
+    "보건사회부": ("1994년 개편", "보건복지부"),
+    "노동부": ("2010년 개편", "고용노동부"),
+    "총무처": ("1998년 폐지", "행정안전부"),
+    "내무부": ("1998년 폐지", "행정안전부"),
+    "공보처": ("1998년 폐지", "문화체육관광부"),
+    "기획예산처": ("2008년 개편", "기획재정부"),
+    "철도청": ("2005년 개편", "한국철도공사/국가철도공단"),
+}
 
 
 def main(argv=None):
@@ -209,6 +237,7 @@ def main(argv=None):
     parser.add_argument("report", help="Report draft path (.md/.html)")
     parser.add_argument("--evidence", nargs="*", default=[], help="Evidence files (audit json, audit_trail.jsonl, timeline json, etc.) for hash grounding")
     parser.add_argument("--timeline", help="Timeline events.json for timestamp grounding (optional)")
+    parser.add_argument("--claim-ledger", help="Optional path to claim-ledger.md for Section 6 verification")
     parser.add_argument("--morph-grounding", action="store_true", help="Kiwi 형태소 기반 증거-보고서 용어 일치도 검증 (Section 5.2)")
     parser.add_argument("--high-fidelity", action="store_true", help="Vertex AI High-Fidelity strict non-parametric grounding mode (Section 4.2)")
     parser.add_argument("--json", action="store_true", help="Output JSON result")
@@ -378,7 +407,14 @@ def main(argv=None):
 
     # 5-3) 공공기관 및 수사기관 명칭 날조 검사 (Section 5.1 #2)
     for m in FABRICATED_AGENCY_RE.finditer(text):
-        errors.append(f"공공기관 명칭 날조 발견: {m.group(0)} (Section 5.1 #2 실존하지 않는 수사/포렌식 기관)")
+        errors.append(f"공공기관 명칭 날조 발견: {m.group('agency')} (Section 5.1 #2 실존하지 않는 수사/포렌식 기관)")
+
+    for agency, (abolish_info, successor) in ABOLISHED_GOV_AGENCIES.items():
+        pat = re.compile(rf"(?<![가-힣]){re.escape(agency)}(?:장관|차관|령|고시|지침)?(?=[이가은는을를의에]|에서|으로|로|\s|[,\.!?\)]|$)")
+        if pat.search(text):
+            errors.append(
+                f"정부기관 명칭 오류/날조 발견: 폐지된 구 부처명 인용 '{agency}' ({abolish_info}, 현행 '{successor}' 명칭 사용 필수) (Section 5.1 위반)"
+            )
 
     # 5-4) <evidence> 태그 인용 검증 (Section 3.2 #1 Evidence-First)
     evidence_matches = EVIDENCE_TAG_RE.findall(text)
@@ -451,6 +487,24 @@ def main(argv=None):
                         errors.append(f"[High-Fidelity Grounding 위반] {msg}")
                     else:
                         warnings.append(msg)
+
+    # 5-7) Section 6 Claim Ledger 검증
+    if args.claim_ledger:
+        try:
+            from scripts.verify_claim_ledger import verify_claim_ledger_file
+        except ImportError:
+            try:
+                from verify_claim_ledger import verify_claim_ledger_file
+            except ImportError:
+                verify_claim_ledger_file = None
+
+        if verify_claim_ledger_file is not None:
+            ledger_report = verify_claim_ledger_file(args.claim_ledger, synthesis_path=args.report)
+            if not ledger_report["ok"]:
+                for v in ledger_report["violations"]:
+                    errors.append(f"[Claim Ledger 위반] [{v['claimId']}] {v['violation']}")
+        else:
+            warnings.append("verify_claim_ledger 모듈을 찾을 수 없어 원장 검증을 건너뛰었습니다.")
 
     result = {
         "report": str(report_path),

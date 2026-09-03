@@ -4,6 +4,13 @@
 
 ## [Unreleased] — 2026-08-30
 
+### Added — Section 5.1 #2 공공기관 및 폐지 부처 명칭 날조 차단 & Section 6 포렌식 Claim Ledger 프로토콜
+
+- `scripts/verify_report.py`: 가짜 수사/포렌식 기관(`FABRICATED_AGENCY_RE`, e.g. 사이버수사처, 디지털포렌식청, 개인정보보호청 등) 및 폐지된 25개 구 정부 부처명(`ABOLISHED_GOV_AGENCIES`, e.g. 정보통신부, 문화공보부, 재정경제부 등) 인용을 전수 탐지해 FAIL 차단 및 현행 승계 부처 안내.
+- `scripts/verify_claim_ledger.py`: Section 6 Claim Ledger 규약 검증기 신설 — 2개 이상의 독립 도메인 또는 2개 이상의 독립 포렌식 아티팩트/해시 검증, 명시적 반대 가설/반증 검색(Counter-Search) 결과 기록, 1차 증거 출처 강제, 보고서 본문 인용 잠금(`[Claim X]`는 `VERIFIED` 상태만 인용 허용) 검증.
+- `scripts/verify_report.py --claim-ledger <path>`: 감정보고서 검증 시 원장 일치성 연계 검증 지원.
+- 단위 테스트 신설 및 보강: `test/test_verify_claim_ledger.py` 신설(7개), `test/test_forensic_scripts.py`에 날조 기관/폐지 부처/원장 연동 테스트 추가.
+
 ### Added — Guard Pack (GUARD_PACK_VERSION 1.0.0) 및 통합 불변식
 
 - `scripts/markdown_structure_guard.mjs` 신설 + `hooks.json` PostToolUse(문서 쓰기·bash 리다이렉트)에 FAIL_CLOSED 배선: 생성 중 스트리핑(빈 링크 `[](`, 빈 불릿 `-  : `, 빈 강조, 고아 `$수식`, 미닫힘 코드펜스, 표 열 불일치)을 쓰기 직후 탐지해 재작성 강제. `--check` 일괄 모드는 CI 단계로도 편입. NTFS 속성명(`$MFT` 등)·인라인 코드 내 `$`는 오탐 제외.

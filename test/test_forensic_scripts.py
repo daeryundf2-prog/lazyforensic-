@@ -494,6 +494,37 @@ class VerifyReportHardeningTests(unittest.TestCase):
         times = verify_report.extract_timestamps("2024년 5월 1일에 발생했다")
         self.assertIn("2024-05-01", times)
 
+    def test_fabricated_agency_in_report_fails(self):
+        proc = self._run("본 보고서는 디지털포렌식청 및 사이버수사처의 수사 지침에 따라 작성되었습니다.")
+        self.assertEqual(proc.returncode, 1, proc.stderr)
+        self.assertIn("공공기관 명칭 날조", proc.stderr)
+
+    def test_obsolete_ministry_in_report_fails(self):
+        proc = self._run("해당 기술 기준은 정보통신부 고시 제2007-1호에 준거합니다.")
+        self.assertEqual(proc.returncode, 1, proc.stderr)
+        self.assertIn("정보통신부", proc.stderr)
+        self.assertIn("폐지된 구 부처명", proc.stderr)
+
+    def test_claim_ledger_integration_in_report(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ledger_path = Path(tmp) / "claim-ledger.md"
+            ledger_path.write_text(
+                "| Claim | Risk Level | Sources (2+ Domains / Artifacts) | Counter-Search / Falsification | Primary Source | Status |\n"
+                "|---|---|---|---|---|:---:|\n"
+                "| [Claim 1] 정상 검증 항목 | High | a.evtx, b.json | 반증 없음 확인 | hash123 | `VERIFIED` |\n"
+                "| [Claim 2] 반증된 항목 | High | a.evtx, b.json | 반증 확인됨 | hash456 | `REFUTED` |\n",
+                encoding="utf-8",
+            )
+            # Passing report: cites Claim 1
+            proc_pass = self._run("결론: [Claim 1]이 확인됨.", extra=["--claim-ledger", str(ledger_path)])
+            self.assertEqual(proc_pass.returncode, 0, proc_pass.stderr)
+
+            # Failing report: cites Claim 2 (REFUTED)
+            proc_fail = self._run("결론: [Claim 2]를 채택함.", extra=["--claim-ledger", str(ledger_path)])
+            self.assertEqual(proc_fail.returncode, 1, proc_fail.stderr)
+            self.assertIn("Claim Ledger 위반", proc_fail.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()
+
