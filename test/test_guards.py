@@ -297,6 +297,20 @@ class StopClaimGuardTests(unittest.TestCase):
         stop_cmd = hooks["Stop"][0]["hooks"][0]["command"]
         self.assertIn("stop_claim_guard.mjs", stop_cmd)
 
+    def test_hooks_matchers_cover_antigravity_write_and_shell(self):
+        data = json.loads((ROOT / "hooks.json").read_text(encoding="utf-8"))
+        post = data["hooks"]["PostToolUse"]
+        pre = data["hooks"]["PreToolUse"]
+        write_m = post[0]["matcher"]
+        shell_m = post[1]["matcher"]
+        pre_m = pre[0]["matcher"]
+        for token in ("write_file", "WriteToFile", "MultiEdit", "SearchReplace", "StrReplace"):
+            self.assertIn(token, write_m)
+            self.assertIn(token, pre_m)
+        for token in ("Bash", "bash", "Shell", "shell", "execute_command"):
+            self.assertIn(token, shell_m)
+            self.assertIn(token, pre_m)
+
 
 class StatutoryBoundsTests(unittest.TestCase):
     def test_verify_report_blocks_out_of_bounds_statute(self):

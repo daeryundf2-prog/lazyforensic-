@@ -2,6 +2,15 @@
 
 이 레포의 실제 변경을 기록한다. 형식은 Keep a Changelog 를 따르고, 항목은 커밋 해시로 추적한다.
 
+### Changed — session default Gemini 3.8 Flash
+
+- Plugin description, GEMINI.md, README, and Antigravity tool mapping now treat Gemini 3.8 Flash (High) as the session default. Verify lanes still use `Model: "pro"`.
+
+### Fixed — Antigravity hook matchers and High-Fidelity branding
+
+- `hooks.json` PreToolUse/PostToolUse matchers now cover `write_file`/`WriteToFile`/`MultiEdit`/`SearchReplace`/`Bash`/`Shell` so Antigravity write/shell tools cannot skip FAIL_CLOSED guards.
+- `--high-fidelity` help and docs describe a local evidence-tag/morpheme gate. No Vertex API call.
+
 ### Added — Section 5.1 #3 한국사 사건/조약/학술논문 날조 차단 & Section 5.1 #4 불가능한 사법절차 차단 & Section 7-8 포렌식 헬스체크 (100점 감사)
 
 - `scripts/verify_report.py`:

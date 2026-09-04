@@ -517,7 +517,7 @@ def main(argv=None):
     parser.add_argument("--claim-ledger", help="Optional path to claim-ledger.md for Section 6 verification")
     parser.add_argument("--allow-historical", action="store_true", help="역사적 부처명 인용 허용 (오류 대신 경고 처리)")
     parser.add_argument("--morph-grounding", action="store_true", help="Kiwi 형태소 기반 증거-보고서 용어 일치도 검증 (Section 5.2)")
-    parser.add_argument("--high-fidelity", action="store_true", help="Vertex AI High-Fidelity strict non-parametric grounding mode (Section 4.2)")
+    parser.add_argument("--high-fidelity", action="store_true", help="Local High-Fidelity gate: require evidence files and <evidence> tags plus morpheme overlap (no Vertex API)")
     parser.add_argument("--json", action="store_true", help="Output JSON result")
     parser.add_argument("--strict", action="store_true", help="Fail with exit 1 if warnings are detected")
     args = parser.parse_args(argv)
@@ -776,7 +776,7 @@ def main(argv=None):
                     "--evidence 파일이 제공되지 않았거나 비어 있습니다. 증거 파일을 지정하십시오."
                 )
 
-    # 5-5) Vertex AI High-Fidelity 비파라메트릭 게이트 (Section 4.2)
+    # 5-5) Local High-Fidelity 비파라메트릭 게이트 (Section 4.2; Vertex API 호출 없음)
     if args.high_fidelity:
         if not args.evidence:
             errors.append("[High-Fidelity Grounding 위반] High-Fidelity 검증을 위한 원문/증거(--evidence)가 지정되지 않았습니다.")

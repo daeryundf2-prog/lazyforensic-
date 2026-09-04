@@ -1,6 +1,6 @@
 # Antigravity tool mapping (LazyForensic)
 
-Defaults: Google Antigravity + Gemini 3.8 / 3.7 Flash (High).
+Defaults: Google Antigravity + Gemini 3.8 Flash (High).
 
 ## Do
 
@@ -35,7 +35,7 @@ ROLE ENVELOPE: mayFinalizeRun=false; mayModifyGlobalRunState=false; mustReturn=S
 )
 ```
 
-`Workspace` is optional. Keep the session UI on Gemini 3.8 / 3.7 Flash (High). For verify lanes pass `Model: "pro"`. Passing `Model` is an agent hint (`hostEnforced=false`).
+`Workspace` is optional. Keep the session UI on Gemini 3.8 Flash (High). For verify lanes pass `Model: "pro"`. Passing `Model` is an agent hint (`hostEnforced=false`).
 
 ## Do not
 

@@ -1,6 +1,6 @@
 # LazyForensic (v1.0.1)
 
-Google Antigravity + Gemini(3.7 Flash) 용 **디지털 포렌식 보조** 플러그인.
+Google Antigravity + Gemini 3.8 Flash 용 **디지털 포렌식 보조** 플러그인.
 증거 텍스트 파싱 → 타임라인 렌더 → 해시 감사 → 보고서 초안 → **초안 검증**까지의 반복 노동을 줄여 준다.
 
 > ⚠️ **이 도구가 아닌 것**: 증거 획득 도구도, 법원 제출 적격성을 보장하는 스위트도 아니다
@@ -92,7 +92,7 @@ python scripts/korean_morph_forensic.py --evidence case/audit.json --report case
 - 근거 없는 SHA-256/MD5 → `FAIL (근거 없는 해시 N개)`
 - `명백히 입증`, `법원에 유효`, `court-admissible` 등 과단정 문구 → `FAIL`
 - 법령 조문 상한(정보통신망법 76조 등) 및 미래 연도 판례 날조 차단
-- Vertex AI High-Fidelity 비파라메트릭 게이트 (`--high-fidelity`): 증거 원문 일치도 70% 미달 시 즉시 차단
+- Local High-Fidelity 비파라메트릭 게이트 (`--high-fidelity`): 증거 원문/`<evidence>` 태그 일치도 70% 미달 시 즉시 차단. Vertex API 호출 없음.
 - 부정 문맥(`유출의심 아님`, `조작 가능성을 배제할 수 없다`)은 오탈 차단하지 않음
 - 인코딩이 UTF-16(Windows PowerShell 기본 출력)이어도 금지 문구를 읽어 낸다
 
