@@ -28,7 +28,12 @@ description: 로컬 드라이브, 폴더, E01 포렌식 이미지 내 마크다�
 
 ## 🚀 CLI 실행 및 분석 가이드
 
-엔진 위치: `C:\Users\HP\.gemini\antigravity\scratch\md-analyzer`
+**엔진은 이 플러그인에 번들되지 않는다 (BYO).** 아래 순서로 위치를 해석하고, 어느 것도 없으면 스킬을 실행하지 말고 사용자에게 설치 경로를 물어라 — 경로를 추측해서 실행하면 안 된다.
+
+1. 환경 변수 `LAZYFORENSIC_MD_ANALYZER_HOME`
+2. `~/.gemini/antigravity/scratch/md-analyzer` (Windows: `%USERPROFILE%\.gemini\antigravity\scratch\md-analyzer`)
+
+아래 명령은 모두 해석된 엔진 디렉터리를 cwd 로 두고 실행한다.
 
 ### 1. 대상 디렉토리 / 드라이브 AI 흔적 전수 스캔 및 보고서 생성
 ```bash
