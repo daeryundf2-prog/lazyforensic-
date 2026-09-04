@@ -22,6 +22,7 @@
   "skills": "./skills/",
   "hooks": "./hooks.json",
   "mcpServers": "./mcp_config.json",
+  "pythonDependencies": "./requirements.txt",
   "interface": {
     "displayName": "LazyForensic",
     "shortDescription": "Forensic evidence organizer for Antigravity (not a court suite)",

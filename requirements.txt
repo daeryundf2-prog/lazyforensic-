@@ -1,0 +1,26 @@
+# lazyforensic Python dependencies
+# 핵심 경로(증거 파싱·타임라인·해시·보고서 검증)는 표준 라이브러리만 쓴다.
+# 아래 항목은 전부 선택 의존성이며, 없으면 해당 기능만 비활성되고 나머지는 그대로 동작한다.
+# 상한을 고정해 상위 버전 동작 변경으로 산출물이 달라지는 것을 막는다.
+
+# 한국어 형태소 그라운딩 (`--morph-grounding`, `--high-fidelity`)
+# 없으면 정규식 폴백으로 내려가 조사 분리 정확도가 떨어진다. scripts/korean_morph_forensic.py
+kiwipiepy>=0.20,<1
+
+# NTFS 아티팩트 파싱 (MFT/USN). 없으면 scripts/parse_ntfs_artifacts.py 가 exit 3 + 안내로 종료
+dissect.target>=3.15,<4
+
+# 딥페이크 포렌식 레이더 — ELA/노이즈 분석 및 차트 렌더
+# scripts/analyze_deepfake_evidence.py, skills/video-editor/helpers/timeline_view.py
+pillow>=10.0,<12
+numpy>=1.26,<3
+matplotlib>=3.8,<4
+
+# 외부 STT API 호출 (skills/video-editor/helpers/transcribe.py)
+requests>=2.31,<3
+
+# 영상 다운로드 (skills/forensic-video). CLI 로 설치해도 된다
+# yt-dlp>=2024.1.0
+
+# Dev
+pytest>=7.0,<9
